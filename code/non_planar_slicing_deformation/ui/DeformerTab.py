@@ -1,7 +1,7 @@
 import pyvista as pv
 import pyvistaqt as pvqt  # type: ignore
-from PySide6.QtCore import Slot, Qt
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QFileDialog, QPushButton, QHBoxLayout, QSlider, QLabel
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QFileDialog, QPushButton, QHBoxLayout
 from typing_extensions import Optional, cast
 
 from non_planar_slicing_deformation.common import Constants

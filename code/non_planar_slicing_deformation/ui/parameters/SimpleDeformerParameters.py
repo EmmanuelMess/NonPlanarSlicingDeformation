@@ -2,7 +2,6 @@ from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import QLabel, QWidget, QSlider, QVBoxLayout
 from typing_extensions import Optional
 
-from non_planar_slicing_deformation.common import Constants
 from non_planar_slicing_deformation.deformer.SimpleDeformer import SimpleDeformer
 from non_planar_slicing_deformation.ui import Strings
 from non_planar_slicing_deformation.ui.parameters.DeformerParameters import DeformerParameters

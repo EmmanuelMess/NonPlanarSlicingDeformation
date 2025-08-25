@@ -1,11 +1,6 @@
-from dataclasses import dataclass
-
-from pygcode import Line, GCodeLinearMove, GCodeRapidMove, GCodeFeedRate
-from typing_extensions import override, Optional, List, cast, Tuple, Union, Callable
-
 import numpy as np
-
-import pygcode as pg  # type: ignore
+from pygcode import Line, GCodeLinearMove, GCodeRapidMove, GCodeFeedRate
+from typing_extensions import override, Optional, List, cast, Tuple, Callable
 
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
 from non_planar_slicing_deformation.configuration import Defaults
@@ -42,7 +37,14 @@ class ThreeAxisUndeformer(Undeformer):
         return gcodeList
 
     @staticmethod
-    def mapGcode(operation: Callable[[float, float, float], Tuple[float, float, float]], line: Line) -> Line:
+    def mapGcode(operation: Callable[[float, float, float], Tuple[float, float, float]], line: Line) \
+            -> Line:  # noqa: C901
+        """
+        Transforms the gcode line by line with a transformation function
+        :param operation: transformation function for points
+        :param line: gcode line
+        :return: the transformed line
+        """
         if not line.block.gcodes:
             return line
 
@@ -58,6 +60,10 @@ class ThreeAxisUndeformer(Undeformer):
             MAIN_LOGGER.error(f"More than one feed rate in line '{line}': {feedRates}")
             return line
 
+        MAIN_LOGGER.error("Not implemented")
+        return line
+
+        """
         position: Optional[List[float]] = None
         feed: Optional[float] = None
         extrusion: Optional[float] = None
@@ -101,3 +107,4 @@ class ThreeAxisUndeformer(Undeformer):
             feed = gcodeBlock.word.value
 
         return line
+        """
