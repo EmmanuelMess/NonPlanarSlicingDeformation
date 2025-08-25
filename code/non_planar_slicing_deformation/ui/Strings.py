@@ -14,3 +14,8 @@ deform = "Desformar"
 deformationFactor = "Factor de desformación"
 deformer = "Desformador"
 undeformer = "Reformador"
+
+firstOrderSlider = "Primer orden"
+secondOrderSlider = "Segundo orden"
+xTranslation = "Desplazamiento X"
+yTranslation = "Desplazamiento Y"

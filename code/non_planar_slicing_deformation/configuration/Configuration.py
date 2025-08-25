@@ -4,6 +4,7 @@ from typing_extensions import Callable
 
 from non_planar_slicing_deformation.deformer.Deformer import Deformer
 from non_planar_slicing_deformation.undeformer.Undeformer import Undeformer
+from non_planar_slicing_deformation.ui.parameters.DeformerParameters import DeformerParameters
 
 
 @dataclass
@@ -20,4 +21,9 @@ class Configuration:
     undeformer: Callable[[], Undeformer]
     """
     Constructor for the Undeformer that will be used in the app
+    """
+
+    defomerParameters: Callable[[Deformer], DeformerParameters]
+    """
+    The UI for the parameters
     """

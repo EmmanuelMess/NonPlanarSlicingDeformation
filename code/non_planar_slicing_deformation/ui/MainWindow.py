@@ -17,27 +17,24 @@ class MainWindow(QWidget):
 
     showLogs = Signal()
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, configuration: Configuration, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
 
         self.resize(Constants.width, Constants.height)
 
-        self.configuration: Optional[Configuration] = None
+        self.configuration: Configuration = configuration
 
         # Layout
-        self.rootLayout = QVBoxLayout(self)
+        self.rootLayout = QVBoxLayout()
 
-        self.topButtonsLayout = QHBoxLayout(self)
+        self.topButtonsLayout = QHBoxLayout()
 
         self.logsButton = QPushButton()
         self.logsButton.setIcon(QIcon.fromTheme(QIcon.ThemeIcon.InsertText))
         self.logsButton.pressed.connect(self.showLogs)
 
-        self.tabButtonsLayout = QHBoxLayout(self)
+        self.tabButtonsLayout = QHBoxLayout()
         self.tabButtonsLayout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-
-        self.settingsLayout = QVBoxLayout(self)
-        self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.deformerButton = QPushButton(Strings.deformer)
         self.deformerButton.setCheckable(True)
@@ -55,23 +52,19 @@ class MainWindow(QWidget):
         self.topButtonsLayout.addStretch(1)
         self.topButtonsLayout.addWidget(self.logsButton)
 
-        self.deformerTab = DeformerTab(self)
+        self.deformerTab = DeformerTab(self.configuration)
         self.deformerTab.setVisible(False)
 
-        self.undeformerTab = UndeformerTab(self)
+        self.undeformerTab = UndeformerTab(self.configuration)
         self.undeformerTab.setVisible(False)
 
         self.rootLayout.addLayout(self.topButtonsLayout)
         self.rootLayout.addWidget(self.deformerTab)
         self.rootLayout.addWidget(self.undeformerTab)
 
+        self.setLayout(self.rootLayout)
+
         self._showDeformerTab()
-
-    def setConfiguration(self, configuration: Configuration) -> None:
-        self.configuration = configuration
-
-        self.deformerTab.setConfiguration(self.configuration)
-        self.undeformerTab.setConfiguration(self.configuration)
 
     @Slot()
     def onDeformerShow(self) -> None:  # pylint: disable=missing-function-docstring

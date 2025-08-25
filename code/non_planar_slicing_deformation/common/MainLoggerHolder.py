@@ -48,6 +48,7 @@ class MainLoggerHolder(metaclass=Singleton):
 
     def _onException(self, etype: Type[BaseException], value: Optional[BaseException],
                      tb: Optional[TracebackType]) -> None:
+        # TODO use logging.Logger.traceback
         self.logger.error(''.join(traceback.format_exception(etype, value, tb)))
 
 

@@ -14,10 +14,10 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
     QWidget that draws the undeformer view
     """
 
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, configuration: Configuration, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        self.undeformer: Optional[Undeformer] = None
+        self.undeformer: Undeformer = configuration.undeformer()
 
         # Layout
         self.rootLayout = QHBoxLayout(self)
@@ -60,12 +60,6 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
         self.outputFileDialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
         self.outputFileDialog.setWindowTitle(Strings.saveModel)
         self.outputFileDialog.fileSelected.connect(self.onSelectedOutputFile)
-
-    def setConfiguration(self, configuration: Configuration) -> None:
-        """
-        Set the actual underlying algorithm for the undeformer
-        """
-        self.undeformer = configuration.undeformer()
 
     @Slot()
     def onSelectInputFile(self) -> None:  # pylint: disable=missing-function-docstring

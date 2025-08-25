@@ -10,7 +10,7 @@ from non_planar_slicing_deformation.configuration.CurrentDeformerState import Cu
 from non_planar_slicing_deformation.state.SimpleDeformerState import SimpleDeformerState
 from non_planar_slicing_deformation.undeformer.Undeformer import Undeformer
 from non_planar_slicing_deformation.undeformer.gcode.FastMove import FastMove
-from non_planar_slicing_deformation.undeformer.gcode.MoveType import MoveType
+from non_planar_slicing_deformation.undeformer.gcode.GcodeLineType import GcodeLineType
 from non_planar_slicing_deformation.undeformer.gcode.SlowMove import SlowMove
 
 
@@ -24,10 +24,10 @@ class SimpleUndeformer(Undeformer):
 
         self.state: Optional[SimpleDeformerState] = None
 
-    def _readGcode(self, state: SimpleDeformerState, gcode: List[str]) -> List[MoveType]:  # noqa: C901
+    def _readGcode(self, state: SimpleDeformerState, gcode: List[str]) -> List[GcodeLineType]:  # noqa: C901
         pos = np.array([0., 0., 20.])
         feed = 0.0
-        gcode_points: List[MoveType] = []
+        gcode_points: List[GcodeLineType] = []
 
         for gcodeLine in map(pg.Line, gcode):
             if not gcodeLine.block.gcodes:

@@ -16,23 +16,17 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
     QWidget that draws the deformer view
     """
 
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, configuration: Configuration, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
         # State
-        self.deformer: Optional[Deformer] = None
+        self.deformer: Deformer = configuration.deformer()
 
         # Layout
-        self.rootLayout = QHBoxLayout(self)
-        self.centralLayout = QVBoxLayout(self)
-        self.plottersLayout = QHBoxLayout(self)
-        self.buttonLayout = QHBoxLayout(self)
-
-        self.settingsLayout = QVBoxLayout(self)
-        self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        self.rootLayout.addLayout(self.centralLayout)
-        self.rootLayout.addLayout(self.settingsLayout)
+        self.rootLayout = QHBoxLayout()
+        self.centralLayout = QVBoxLayout()
+        self.plottersLayout = QHBoxLayout()
+        self.buttonLayout = QHBoxLayout()
 
         # TODO add controls tutorial
         # TODO link both plotters's cameras
@@ -52,18 +46,14 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
         self.outputModelButton.clicked.connect(self.onSelectOutputFile)
         self.buttonLayout.addWidget(self.outputModelButton)
 
-        # TODO this is temporary, it needs to be replaced with a proper generic settings system
-        # TODO disable settings when no model is loaded
-        self.textRadius = QLabel()
-        self.textRadius.setText(Strings.deformationFactor)
-        self.settingsLayout.addWidget(self.textRadius)
+        self.deformerParameters = configuration.defomerParameters(self.deformer)
+        self.deformerParameters.setFixedWidth(Constants.widthSettings)
+        self.deformerParameters.update.connect(self.onParameterUpdated)
 
-        self.radiusSlider = QSlider(Qt.Orientation.Horizontal)
-        self.radiusSlider.setTickPosition(QSlider.TickPosition.TicksBelow)
-        self.radiusSlider.setRange(-314, 314)
-        self.radiusSlider.setFixedWidth(Constants.widthSettings)
-        self.radiusSlider.valueChanged.connect(self.onRadiusChanged)
-        self.settingsLayout.addWidget(self.radiusSlider)
+        self.rootLayout.addLayout(self.centralLayout)
+        self.rootLayout.addWidget(self.deformerParameters)
+
+        self.setLayout(self.rootLayout)
 
         self.inputFileDialog = QFileDialog(self)
         self.inputFileDialog.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -77,19 +67,8 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
         self.outputFileDialog.setWindowTitle(Strings.saveModel)
         self.outputFileDialog.fileSelected.connect(self.onSelectedOutputFile)
 
-    def setConfiguration(self, configuration: Configuration) -> None:
-        """
-        Set the actual underlying algorithm for the deformer
-        """
-        self.deformer = configuration.deformer()
-
     @Slot()
-    def onRadiusChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        if self.deformer is None:
-            MAIN_LOGGER.error("Deformer is None, did you forget to call setConfiguration?")
-            return
-
-        self.deformer.getParameters()["radius"] = float(value) / 100
+    def onParameterUpdated(self) -> None:  # pylint: disable=missing-function-docstring
         self._updateDeformedMesh()
 
     @Slot()
