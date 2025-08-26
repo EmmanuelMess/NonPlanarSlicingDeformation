@@ -4,7 +4,7 @@ from PySide6 import QtWidgets
 from PySide6.QtCore import Slot
 from typing_extensions import Dict
 
-from deformer.ThreeAxisDeformer import ThreeAxisDeformer
+from non_planar_slicing_deformation.deformer.ThreeAxisDeformer import ThreeAxisDeformer
 from non_planar_slicing_deformation.common.Singleton import Singleton
 from non_planar_slicing_deformation.configuration.Configuration import Configuration
 from non_planar_slicing_deformation.deformer.SimpleDeformer import SimpleDeformer
@@ -14,8 +14,8 @@ from non_planar_slicing_deformation.ui.ModeSelectorWindow import ModeSelectorWin
 from non_planar_slicing_deformation.undeformer.SimpleUndeformer import SimpleUndeformer
 from non_planar_slicing_deformation.ui.LogsWindow import LogsWindow
 from non_planar_slicing_deformation.undeformer.ThreeAxisUndeformer import ThreeAxisUndeformer
-from ui.parameters.SimpleDeformerParameters import SimpleDeformerParameters
-from ui.parameters.ThreeAxisDeformerParameters import ThreeAxisDeformerParameters
+from non_planar_slicing_deformation.ui.parameters.SimpleDeformerParameters import SimpleDeformerParameters
+from non_planar_slicing_deformation.ui.parameters.ThreeAxisDeformerParameters import ThreeAxisDeformerParameters
 
 
 class MainApp(metaclass=Singleton):
