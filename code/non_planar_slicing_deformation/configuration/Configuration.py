@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from typing_extensions import Callable, TypeVar
+from typing_extensions import Callable
 
 from non_planar_slicing_deformation.deformer.Deformer import Deformer
-from non_planar_slicing_deformation.undeformer.Undeformer import Undeformer
 from non_planar_slicing_deformation.ui.parameters.DeformerParameters import DeformerParameters
+from non_planar_slicing_deformation.undeformer.Undeformer import Undeformer
 
 
 @dataclass
