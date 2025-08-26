@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing_extensions import Callable
+from typing_extensions import Callable, TypeVar
 
 from non_planar_slicing_deformation.deformer.Deformer import Deformer
 from non_planar_slicing_deformation.undeformer.Undeformer import Undeformer
@@ -12,6 +12,8 @@ class Configuration:
     """
     Holds the deformer and undeformer classes, one should exist per element in :class:`Mode`
     """
+
+    # TODO add a type constraint between the return of the deformer and the parameters input
 
     deformer: Callable[[], Deformer]
     """

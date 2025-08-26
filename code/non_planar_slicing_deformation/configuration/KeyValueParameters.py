@@ -1,6 +1,8 @@
-from typing_extensions import Any, Optional, Type, Dict, Tuple
+from typing_extensions import Any, Optional, Type, Dict, Tuple, TypeVar
 
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
+
+T = TypeVar("T")
 
 
 class KeyValueParameters:
@@ -11,7 +13,7 @@ class KeyValueParameters:
     def __init__(self, defaults: Dict[str, Any]) -> None:
         self.map = defaults
 
-    def __getitem__(self, item: Tuple[str, Type[Any]]) -> Optional[Any]:
+    def __getitem__(self, item: Tuple[str, Type[T]]) -> Optional[T]:
         key, valueType = item
         if key not in self.map.keys():
             MAIN_LOGGER.warning(f"Key {key} is not in parameter map {self.map}")

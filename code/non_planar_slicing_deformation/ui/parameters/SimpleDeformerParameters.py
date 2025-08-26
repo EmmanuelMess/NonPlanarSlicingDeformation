@@ -35,4 +35,4 @@ class SimpleDeformerParameters(DeformerParameters):
     @Slot()
     def onRadiusChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
         self.deformer.getParameters()["radius"] = float(value) / 100
-        self.update.emit()
+        self.parameterUpdate.emit()

@@ -1,8 +1,9 @@
+import numpy as np
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSlider
 from typing_extensions import Optional, Callable
 
-from non_planar_slicing_deformation.deformer import ThreeAxisDeformer
+from non_planar_slicing_deformation.deformer.ThreeAxisDeformer import ThreeAxisDeformer
 from non_planar_slicing_deformation.ui import Strings
 from non_planar_slicing_deformation.ui.parameters.DeformerParameters import DeformerParameters
 
@@ -47,20 +48,20 @@ class ThreeAxisDeformerParameters(DeformerParameters):
 
     @Slot(int)
     def onFirstOrderChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        self.deformer.getParameters()["first order"] = float(value) / 100
-        self.update.emit()
+        self.deformer.getParameters()["first order"] = np.float64(value) / 100
+        self.parameterUpdate.emit()
 
     @Slot(int)
     def onSecondOrderChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        self.deformer.getParameters()["second order"] = float(value) / 100
-        self.update.emit()
+        self.deformer.getParameters()["second order"] = np.float64(value) / 100
+        self.parameterUpdate.emit()
 
     @Slot(int)
     def onXTranslationChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        self.deformer.getParameters()["x translation"] = float(value) / 100
-        self.update.emit()
+        self.deformer.getParameters()["x translation"] = np.float64(value) / 100
+        self.parameterUpdate.emit()
 
     @Slot(int)
     def onYTranslationChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        self.deformer.getParameters()["y translation"] = float(value) / 100
-        self.update.emit()
+        self.deformer.getParameters()["y translation"] = np.float64(value) / 100
+        self.parameterUpdate.emit()

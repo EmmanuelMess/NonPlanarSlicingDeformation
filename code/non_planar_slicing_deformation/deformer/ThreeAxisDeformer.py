@@ -26,11 +26,14 @@ class ThreeAxisDeformer(Deformer):
         mesh.field_data["faces"] = mesh.faces.reshape(-1, 4)[:, 1:]  # assume all triangles
         points = mesh.points
 
-        firstOrder: float = self.getParameters()["first order", float]
-        secondOrder: float = self.getParameters()["second order", float]
+        firstOrder = cast(np.float64, self.getParameters()["first order", np.float64])  # TODO check optional
+        secondOrder = cast(np.float64, self.getParameters()["second order", np.float64])  # TODO check optional
 
-        translationX: float = self.getParameters()["x translation", float] * np.max(points[:, 0])
-        translationY: float = self.getParameters()["y translation", float] * np.max(points[:, 1])
+        translationX: np.float64 = cast(np.float64, self.getParameters()["x translation", np.float64])
+        translationX *= np.max(points[:, 0])  # TODO check optional
+
+        translationY: np.float64 = cast(np.float64, self.getParameters()["y translation", np.float64])
+        translationY *= np.max(points[:, 1])  # TODO check optional
 
         translationVector = np.array([
             translationX,

@@ -48,7 +48,7 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
 
         self.deformerParameters = configuration.defomerParameters(self.deformer)
         self.deformerParameters.setFixedWidth(Constants.widthSettings)
-        self.deformerParameters.update.connect(self.onParameterUpdated)
+        self.deformerParameters.parameterUpdate.connect(self.onParameterUpdated)
 
         self.rootLayout.addLayout(self.centralLayout)
         self.rootLayout.addWidget(self.deformerParameters)

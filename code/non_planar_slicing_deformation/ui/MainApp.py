@@ -2,7 +2,7 @@ import sys
 
 from PySide6 import QtWidgets
 from PySide6.QtCore import Slot
-from typing_extensions import Dict
+from typing_extensions import Dict, cast
 
 from non_planar_slicing_deformation.deformer.ThreeAxisDeformer import ThreeAxisDeformer
 from non_planar_slicing_deformation.common.Singleton import Singleton
@@ -24,11 +24,15 @@ class MainApp(metaclass=Singleton):
     """
 
     _CONFIGURATION: Dict[Mode, Configuration] = {
-        Mode.FOUR_AXIS_SIMPLE: Configuration(deformer=SimpleDeformer, undeformer=SimpleUndeformer,
-                                             defomerParameters=lambda deformer: SimpleDeformerParameters(deformer)),
+        Mode.FOUR_AXIS_SIMPLE: Configuration(
+            deformer=SimpleDeformer, undeformer=SimpleUndeformer,
+            defomerParameters=lambda deformer: SimpleDeformerParameters(cast(SimpleDeformer, deformer))
+            ),
         # Mode.FOUR_S: None,
-        Mode.THREE_AXIS: Configuration(deformer=ThreeAxisDeformer, undeformer=ThreeAxisUndeformer,
-                                       defomerParameters=lambda deformer: ThreeAxisDeformerParameters(deformer)),
+        Mode.THREE_AXIS: Configuration(
+            deformer=ThreeAxisDeformer, undeformer=ThreeAxisUndeformer,
+            defomerParameters=lambda deformer: ThreeAxisDeformerParameters(cast(ThreeAxisDeformer, deformer))
+            ),
         }
 
     def __init__(self) -> None:

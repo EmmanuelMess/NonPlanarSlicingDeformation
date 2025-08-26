@@ -1,5 +1,5 @@
 import numpy as np
-from pygcode import Line, GCodeLinearMove, GCodeRapidMove, GCodeFeedRate
+from pygcode import Line, GCodeLinearMove, GCodeRapidMove, GCodeFeedRate  # type: ignore
 from typing_extensions import override, Optional, List, cast, Tuple, Callable
 
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER

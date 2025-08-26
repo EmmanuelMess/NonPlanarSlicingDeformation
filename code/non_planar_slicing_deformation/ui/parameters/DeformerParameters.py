@@ -7,7 +7,7 @@ class DeformerParameters(QWidget):
     A UI for settign the parameters of the :class:`Deformer`
     """
 
-    update = Signal()
+    parameterUpdate = Signal()
     """
     Emitted when a parameter is updated
     """

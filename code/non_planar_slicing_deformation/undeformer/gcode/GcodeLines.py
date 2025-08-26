@@ -1,4 +1,4 @@
-from pygcode import Line
+from pygcode import Line  # type: ignore
 from typing_extensions import Callable, List
 
 
