@@ -44,8 +44,10 @@ class SimpleDeformer(Deformer):
 
         # rotate points around max diameter ring
         distances_to_center = np.linalg.norm(mesh.points[:, :2], axis=1)
-        translate_upwards = np.hstack([np.zeros((len(mesh.points), 2)), np.tan(
-            rotation(distances_to_center).reshape(-1, 1)) * distances_to_center.reshape(-1, 1)])
+        translate_upwards = np.hstack([
+            np.zeros((len(mesh.points), 2)),
+            np.tan(rotation(distances_to_center).reshape(-1, 1)) * distances_to_center.reshape(-1, 1)
+        ], dtype=np.float64)
 
         mesh.points = cast(pv.pyvista_ndarray, mesh.points + translate_upwards)
 

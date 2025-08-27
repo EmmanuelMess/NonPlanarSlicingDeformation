@@ -148,7 +148,7 @@ class SimpleUndeformer(Undeformer):
             if point.extrusion is not None:
                 point.extrusion *= extrusion_scales[i]
 
-        NOZZLE_OFFSET = np.float64(43)  # mm
+        NOZZLE_OFFSET = np.float64(42.5)  # mm
 
         prev_r = np.float64(0)
         prev_theta = np.float64(0)
