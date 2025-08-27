@@ -1,7 +1,7 @@
 import numpy as np
 from PySide6.QtCore import Slot, Qt
 from PySide6.QtWidgets import QLabel, QWidget, QSlider, QVBoxLayout
-from typing_extensions import Optional, Callable
+from typing_extensions import Optional, Callable, cast
 
 from non_planar_slicing_deformation.deformer.SimpleDeformer import SimpleDeformer
 from non_planar_slicing_deformation.ui import Strings
@@ -21,26 +21,34 @@ class SimpleDeformerParameters(DeformerParameters):
         self.settingsLayout = QVBoxLayout()
         self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        zerothOrderSliderDefault = np.int64(self.deformer.getParameters()["zeroth order", np.float64] * 100).item()
-        self.zerothOrderSlider = self._labeledSlider(Strings.zerothOrderSlider, -100, 100,
-                                                     zerothOrderSliderDefault, self.onZerothOrderChanged)
+        zerothOrderSliderDefault = cast(np.float64, self.deformer.getParameters()["zeroth order", np.float64])
+        self.zerothOrderSlider = self._labeledSlider(
+            Strings.zerothOrderSlider, -100, 100, np.int64(zerothOrderSliderDefault * 100).item(),
+            self.onZerothOrderChanged
+            )
         self.settingsLayout.addLayout(self.zerothOrderSlider)
-        firstOrderSliderDefault = np.int64(self.deformer.getParameters()["first order", np.float64] * 100).item()
-        self.firstOrderSlider = self._labeledSlider(Strings.firstOrderSlider, -100, 100, firstOrderSliderDefault,
-                                                    self.onFirstOrderChanged)
+        firstOrderSliderDefault = cast(np.float64, self.deformer.getParameters()["first order", np.float64])
+        self.firstOrderSlider = self._labeledSlider(
+            Strings.firstOrderSlider, -100, 100, np.int64(firstOrderSliderDefault * 100).item(),
+            self.onFirstOrderChanged
+            )
         self.settingsLayout.addLayout(self.firstOrderSlider)
-        secondOrderSliderDefault = np.int64(self.deformer.getParameters()["second order", np.float64] * 100).item()
-        self.secondOrderSlider = self._labeledSlider(Strings.secondOrderSlider, -10, 10,
-                                                     secondOrderSliderDefault, self.onSecondOrderChanged)
+        secondOrderSliderDefault = cast(np.float64, self.deformer.getParameters()["second order", np.float64])
+        self.secondOrderSlider = self._labeledSlider(
+            Strings.secondOrderSlider, -10, 10, np.int64(secondOrderSliderDefault * 100).item(),
+            self.onSecondOrderChanged
+            )
         self.settingsLayout.addLayout(self.secondOrderSlider)
 
-        startSliderDefault = np.int64(self.deformer.getParameters()["start", np.float64] * 100).item()
-        self.startSlider = self._labeledSlider(Strings.startSlider, 0, 10000, startSliderDefault,
-                                               self.onStartChanged)
+        startSliderDefault = cast(np.float64, self.deformer.getParameters()["start", np.float64])
+        self.startSlider = self._labeledSlider(
+            Strings.startSlider, 0, 10000, np.int64(startSliderDefault * 100).item(), self.onStartChanged
+            )
         self.settingsLayout.addLayout(self.startSlider)
-        endSliderDefault = np.int64(self.deformer.getParameters()["end", np.float64] * 100).item()
-        self.endSlider = self._labeledSlider(Strings.endSlider, 0, 10000, endSliderDefault,
-                                             self.onEndChanged)
+        endSliderDefault = cast(np.float64, self.deformer.getParameters()["end", np.float64])
+        self.endSlider = self._labeledSlider(
+            Strings.endSlider, 0, 10000, np.int64(endSliderDefault * 100).item(), self.onEndChanged
+            )
         self.settingsLayout.addLayout(self.endSlider)
 
         self.setLayout(self.settingsLayout)

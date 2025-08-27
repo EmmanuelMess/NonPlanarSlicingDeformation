@@ -114,8 +114,9 @@ class SimpleUndeformer(Undeformer):
         # TODO split this into functions
 
         # read gcode
-        gocdeCommands = self._readGcode(state, gcode)
-        gcodeMoves = [point for point in gocdeCommands if isinstance(point, Move)]
+        gcodeCommands: List[GcodeLineType] = self._readGcode(state, gcode)
+        gcodeMoves = [cast(Move, point) for point in gcodeCommands
+                      if isinstance(point, FastMove) or isinstance(point, SlowMove)]
 
         # untransform gcode
         positions = np.array([point.position for point in gcodeMoves], dtype=np.float64)
@@ -129,28 +130,28 @@ class SimpleUndeformer(Undeformer):
 
         # cap travel move height to be just above the part and to not travel over the origin
         max_z = 0
-        for i, command in enumerate(gcodeMoves):
-            if command.command == "G01":
+        for i, commands in enumerate(gcodeMoves):
+            if commands.command == "G01":
                 max_z = np.max(np.array([max_z, new_positions[i, 2]]))
-        for i, command in enumerate(gcodeMoves):
-            if command.command == "G00":
+        for i, commands in enumerate(gcodeMoves):
+            if commands.command == "G00":
                 if new_positions[i, 2] > max_z:
                     new_positions[i] = None
 
         # rescale extrusion by change in move_length
         prev_pos = np.array([0., 0., 0.])
-        for i, command in enumerate(gcodeMoves):
-            if command.extrusion is not None and command.moveLength != 0:
-                extrusion_scale = cast(float, np.linalg.norm(new_positions[i] - prev_pos) / command.moveLength)
-                command.extrusion *= min(extrusion_scale, 10.0)
+        for i, commands in enumerate(gcodeMoves):
+            if commands.extrusion is not None and commands.moveLength != 0:
+                extrusion_scale = cast(float, np.linalg.norm(new_positions[i] - prev_pos) / commands.moveLength)
+                commands.extrusion *= min(extrusion_scale, 10.0)
             prev_pos = new_positions[i]
 
         # rescale extrusion to compensate for rotation deformation
         distances_to_center = np.linalg.norm(new_positions[:, :2], axis=1)
         extrusion_scales = np.cos(state.rotation(distances_to_center))
-        for i, command in enumerate(gcodeMoves):
-            if command.extrusion is not None:
-                command.extrusion *= extrusion_scales[i]
+        for i, commands in enumerate(gcodeMoves):
+            if commands.extrusion is not None:
+                commands.extrusion *= extrusion_scales[i]
 
         NOZZLE_OFFSET = np.float64(42.5)  # mm
 
@@ -173,11 +174,11 @@ class SimpleUndeformer(Undeformer):
         outputLines.append(f"G0 C{prev_theta} X{prev_r} Z{prev_z} B{-np.rad2deg(state.rotation(np.float64(0)))}")
         outputLines.append("G93 ; inverse time feed ")
 
-        for command in gocdeCommands:
-            if isinstance(command, Comment):
-                outputLines.append(f"{command.text}")
+        for commands in gcodeCommands:  # type: ignore # TODO fix issue
+            if isinstance(commands, Comment):
+                outputLines.append(f"{commands.text}")
                 continue
-            if isinstance(command, Move):
+            if isinstance(commands, FastMove) or isinstance(commands, SlowMove):
                 position = new_positions[positionIndex, :]
 
                 if position is None:
@@ -209,20 +210,16 @@ class SimpleUndeformer(Undeformer):
 
                 theta_accum += delta_theta
 
-                string = f"{
-                    command.command} C{
-                    np.rad2deg(theta_accum):.5f} X{
-                    r:.5f} Z{
-                    z:.5f} B{
-                    -np.rad2deg(rotation):.5f}"
+                string = \
+                    f"{commands.command} C{np.rad2deg(theta_accum):.5f} X{r:.5f} Z{z:.5f} B{-np.rad2deg(rotation):.5f}"
                 # If you want to print on another type of 4 axis printer, you will need to change previous code
 
-                if command.extrusion is not None:
-                    string += f" E{command.extrusion:.4f}"
+                if commands.extrusion is not None:
+                    string += f" E{commands.extrusion:.4f}"
 
                 no_feed_value = False
-                if command.inverseTimeFeed is not None:
-                    string += f" F{command.inverseTimeFeed:.4f}"
+                if commands.inverseTimeFeed is not None:
+                    string += f" F{commands.inverseTimeFeed:.4f}"
                 else:
                     string += " F50000"
                     outputLines.append("G94")

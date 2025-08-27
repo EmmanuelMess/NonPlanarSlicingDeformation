@@ -3,7 +3,7 @@ from typing_extensions import Optional, override, cast
 import numpy as np
 import pyvista as pv
 
-from common.MainLoggerHolder import MAIN_LOGGER
+from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
 from non_planar_slicing_deformation.configuration.CurrentDeformerState import CurrentDeformerState
 from non_planar_slicing_deformation.configuration import Defaults
 from non_planar_slicing_deformation.deformer.Deformer import Deformer
@@ -38,17 +38,17 @@ class SimpleDeformer(Deformer):
 
         # define rotation as a function of radius
         def rotation(radius: np.float64) -> np.float64:
-            start = self.getParameters()["start", np.float64]
-            end = self.getParameters()["end", np.float64]
+            start = cast(np.float64, self.getParameters()["start", np.float64])  # TODO deal with None
+            end = cast(np.float64, self.getParameters()["end", np.float64])  # TODO deal with None
 
             if end < start:
                 MAIN_LOGGER.warning(f"End radius {end} is lower than start radius {start}")
 
             remappedRadius = np.where(radius < start, start, np.where(radius < end, radius, end))
 
-            a = self.getParameters()["zeroth order", np.float64]
-            b = self.getParameters()["first order", np.float64]
-            c = self.getParameters()["second order", np.float64]
+            a = cast(np.float64, self.getParameters()["zeroth order", np.float64])  # TODO deal with None
+            b = cast(np.float64, self.getParameters()["first order", np.float64])  # TODO deal with None
+            c = cast(np.float64, self.getParameters()["second order", np.float64])  # TODO deal with None
             normalizedRadius = (remappedRadius / maxRadius)
             return a + b * normalizedRadius + c * normalizedRadius ** 2
             # return np.deg2rad(15 + 30 * (radius / maxRadius))  # Use for propeller and tree

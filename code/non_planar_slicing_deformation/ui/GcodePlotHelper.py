@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pygcode as pg  # type: ignore
 import pyvista as pv
-from typing_extensions import Optional, List, Tuple
+from typing_extensions import List, Tuple
 
 
 G_COMMAND_3_AXIS_GCODE_REGEX = re.compile(
@@ -17,7 +17,7 @@ G_COMMAND_4_AXIS_GCODE_REGEX = re.compile(
     )
 
 
-def plottable3AxisGcode(lines: List[str]) -> Optional[pv.PolyData]:
+def plottable3AxisGcode(lines: List[str]) -> pv.PolyData:
     """
     Simple function to convert gcode lines to a pv.PolyData that can be plotted
     """
@@ -53,7 +53,7 @@ def plottable3AxisGcode(lines: List[str]) -> Optional[pv.PolyData]:
     return pv.PolyData(pointArray)
 
 
-def plottable4AxisGcode(lines: List[str]) -> Optional[Tuple[pv.PolyData, np.ndarray]]:
+def plottable4AxisGcode(lines: List[str]) -> Tuple[pv.PolyData, np.ndarray]:
     """
     Simple function to convert gcode lines to a pv.PolyData that can be plotted
     """

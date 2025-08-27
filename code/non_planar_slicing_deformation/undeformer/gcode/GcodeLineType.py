@@ -6,6 +6,3 @@ from non_planar_slicing_deformation.undeformer.gcode.Comment import Comment
 
 GcodeLineType = Union[SlowMove, FastMove, Comment]
 Move = Union[SlowMove, FastMove]
-"""
-If the type has a position member
-"""
