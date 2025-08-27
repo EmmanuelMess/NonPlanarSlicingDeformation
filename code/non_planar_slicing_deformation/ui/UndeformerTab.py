@@ -115,7 +115,12 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
         undeformedGcode: Optional[List[str]] = self.undeformer.getUndeformedGcode()
 
         if undeformedGcode is not None:
+            mesh, colorMap = GcodePlotHelper.plottable4AxisGcode(undeformedGcode)
+
             self.plotterRight.clear_actors()
-            self.plotterRight.add_mesh(GcodePlotHelper.plottable4AxisGcode(undeformedGcode))
+            self.plotterRight.add_mesh(
+                mesh,
+                scalars=colorMap
+                )
         else:
             MAIN_LOGGER.error("Undeformed mesh cannot be shown!")

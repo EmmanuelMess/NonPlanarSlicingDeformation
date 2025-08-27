@@ -10,8 +10,9 @@ from non_planar_slicing_deformation.configuration.CurrentDeformerState import Cu
 from non_planar_slicing_deformation.state.SimpleDeformerState import SimpleDeformerState
 from non_planar_slicing_deformation.undeformer.Undeformer import Undeformer
 from non_planar_slicing_deformation.undeformer.gcode.FastMove import FastMove
-from non_planar_slicing_deformation.undeformer.gcode.GcodeLineType import GcodeLineType
+from non_planar_slicing_deformation.undeformer.gcode.GcodeLineType import GcodeLineType, Move
 from non_planar_slicing_deformation.undeformer.gcode.SlowMove import SlowMove
+from non_planar_slicing_deformation.undeformer.gcode.Comment import Comment
 
 
 class SimpleUndeformer(Undeformer):
@@ -27,10 +28,12 @@ class SimpleUndeformer(Undeformer):
     def _readGcode(self, state: SimpleDeformerState, gcode: List[str]) -> List[GcodeLineType]:  # noqa: C901
         pos = np.array([0., 0., 20.])
         feed = 0.0
-        gcode_points: List[GcodeLineType] = []
+        gcodePoints: List[GcodeLineType] = []
 
         for gcodeLine in map(pg.Line, gcode):
             if not gcodeLine.block.gcodes:
+                if gcodeLine.comment:
+                    gcodePoints.append(Comment(text=gcodeLine.text.rstrip()))
                 continue
 
             nextGcodeBlock = None
@@ -79,7 +82,7 @@ class SimpleUndeformer(Undeformer):
                     inv_time_feed = 1 / time_to_complete_move  # 1/min
 
                 for i in range(int(num_segments)):
-                    gcode_points.append(SlowMove(
+                    gcodePoints.append(SlowMove(
                         position=(prev_pos + delta_pos * (i + 1) / num_segments) + state.offsetsApplied,
                         command=nextGcodeBlock.word,
                         extrusion=extrusion / num_segments if extrusion is not None else None,
@@ -90,7 +93,7 @@ class SimpleUndeformer(Undeformer):
                         unsegmentedMoveLength=distance
                         ))
             else:
-                gcode_points.append(FastMove(
+                gcodePoints.append(FastMove(
                     position=pos.copy() + state.offsetsApplied,
                     command=nextGcodeBlock.word,
                     extrusion=extrusion,
@@ -98,7 +101,7 @@ class SimpleUndeformer(Undeformer):
                     moveLength=0
                     ))
 
-        return gcode_points
+        return gcodePoints
 
     @override
     def undeformImplementation(self, gcode: List[str]) -> Optional[List[str]]:  # noqa: C901
@@ -111,10 +114,11 @@ class SimpleUndeformer(Undeformer):
         # TODO split this into functions
 
         # read gcode
-        gcode_points = self._readGcode(state, gcode)
+        gocdeCommands = self._readGcode(state, gcode)
+        gcodeMoves = [point for point in gocdeCommands if isinstance(point, Move)]
 
         # untransform gcode
-        positions = np.array([point.position for point in gcode_points], dtype=np.float64)
+        positions = np.array([point.position for point in gcodeMoves], dtype=np.float64)
         distances_to_center = np.linalg.norm(positions[:, :2], axis=1)
         translate_upwards = np.hstack([
             np.zeros((len(positions), 2)),
@@ -125,28 +129,28 @@ class SimpleUndeformer(Undeformer):
 
         # cap travel move height to be just above the part and to not travel over the origin
         max_z = 0
-        for i, point in enumerate(gcode_points):
-            if point.command == "G01":
+        for i, command in enumerate(gcodeMoves):
+            if command.command == "G01":
                 max_z = np.max(np.array([max_z, new_positions[i, 2]]))
-        for i, point in enumerate(gcode_points):
-            if point.command == "G00":
+        for i, command in enumerate(gcodeMoves):
+            if command.command == "G00":
                 if new_positions[i, 2] > max_z:
                     new_positions[i] = None
 
         # rescale extrusion by change in move_length
         prev_pos = np.array([0., 0., 0.])
-        for i, point in enumerate(gcode_points):
-            if point.extrusion is not None and point.moveLength != 0:
-                extrusion_scale = cast(float, np.linalg.norm(new_positions[i] - prev_pos) / point.moveLength)
-                point.extrusion *= min(extrusion_scale, 10.0)
+        for i, command in enumerate(gcodeMoves):
+            if command.extrusion is not None and command.moveLength != 0:
+                extrusion_scale = cast(float, np.linalg.norm(new_positions[i] - prev_pos) / command.moveLength)
+                command.extrusion *= min(extrusion_scale, 10.0)
             prev_pos = new_positions[i]
 
         # rescale extrusion to compensate for rotation deformation
         distances_to_center = np.linalg.norm(new_positions[:, :2], axis=1)
         extrusion_scales = np.cos(state.rotation(distances_to_center))
-        for i, point in enumerate(gcode_points):
-            if point.extrusion is not None:
-                point.extrusion *= extrusion_scales[i]
+        for i, command in enumerate(gcodeMoves):
+            if command.extrusion is not None:
+                command.extrusion *= extrusion_scales[i]
 
         NOZZLE_OFFSET = np.float64(42.5)  # mm
 
@@ -155,6 +159,7 @@ class SimpleUndeformer(Undeformer):
         prev_z = np.float64(20)
 
         theta_accum = 0
+        positionIndex = 0
 
         # save transformed gcode
         outputLines: List[str] = []
@@ -168,60 +173,71 @@ class SimpleUndeformer(Undeformer):
         outputLines.append(f"G0 C{prev_theta} X{prev_r} Z{prev_z} B{-np.rad2deg(state.rotation(np.float64(0)))}")
         outputLines.append("G93 ; inverse time feed ")
 
-        for i, point in enumerate(gcode_points):
-            position = new_positions[i, :]
-
-            if position is None:
+        for command in gocdeCommands:
+            if isinstance(command, Comment):
+                outputLines.append(f"{command.text}")
                 continue
+            if isinstance(command, Move):
+                position = new_positions[positionIndex, :]
 
-            if np.all(np.isnan(position)):
-                continue
+                if position is None:
+                    continue
 
-            if position[2] < 0:
-                continue
+                if np.all(np.isnan(position)):
+                    continue
 
-            # If you want to print on another type of 4 axis printer, you will need to change next code
-            # convert to polar coordinates
-            r = np.float64(np.linalg.norm(position[:2]))  # mypy needs the cast for some reason
-            theta = np.arctan2(position[1], position[0])
-            z = position[2]
+                if position[2] < 0:
+                    continue
 
-            rotation = state.rotation(r) * 1
+                # If you want to print on another type of 4 axis printer, you will need to change next code
+                # convert to polar coordinates
+                r = np.float64(np.linalg.norm(position[:2]))  # mypy needs the cast for some reason
+                theta = np.arctan2(position[1], position[0])
+                z = position[2]
 
-            # compensate for nozzle offset
-            r += np.sin(rotation) * NOZZLE_OFFSET
-            z += (np.cos(rotation) - 1) * NOZZLE_OFFSET
+                rotation = state.rotation(r)
 
-            delta_theta = theta - prev_theta
-            if delta_theta > np.pi:
-                delta_theta -= 2 * np.pi
-            if delta_theta < -np.pi:
-                delta_theta += 2 * np.pi
+                # compensate for nozzle offset
+                r += np.sin(rotation) * NOZZLE_OFFSET
+                z += (np.cos(rotation) - 1) * NOZZLE_OFFSET
 
-            theta_accum += delta_theta
+                delta_theta = theta - prev_theta
+                if delta_theta > np.pi:
+                    delta_theta -= 2 * np.pi
+                if delta_theta < -np.pi:
+                    delta_theta += 2 * np.pi
 
-            string = f"{point.command} C{np.rad2deg(theta_accum):.5f} X{r:.5f} Z{z:.5f} B{-np.rad2deg(rotation):.5f}"
-            # If you want to print on another type of 4 axis printer, you will need to change previous code
+                theta_accum += delta_theta
 
-            if point.extrusion is not None:
-                string += f" E{point.extrusion:.4f}"
+                string = f"{
+                    command.command} C{
+                    np.rad2deg(theta_accum):.5f} X{
+                    r:.5f} Z{
+                    z:.5f} B{
+                    -np.rad2deg(rotation):.5f}"
+                # If you want to print on another type of 4 axis printer, you will need to change previous code
 
-            no_feed_value = False
-            if point.inverseTimeFeed is not None:
-                string += f" F{point.inverseTimeFeed:.4f}"
-            else:
-                string += " F50000"
-                outputLines.append("G94")
-                no_feed_value = True
+                if command.extrusion is not None:
+                    string += f" E{command.extrusion:.4f}"
 
-            outputLines.append(string)
+                no_feed_value = False
+                if command.inverseTimeFeed is not None:
+                    string += f" F{command.inverseTimeFeed:.4f}"
+                else:
+                    string += " F50000"
+                    outputLines.append("G94")
+                    no_feed_value = True
 
-            if no_feed_value:
-                outputLines.append("G93")  # back to inv feed
+                outputLines.append(string)
 
-            # update previous values
-            prev_r = r
-            prev_theta = theta
-            prev_z = z
+                if no_feed_value:
+                    outputLines.append("G93")  # back to inv feed
+
+                # update previous values
+                prev_r = r
+                prev_theta = theta
+                prev_z = z
+
+                positionIndex += 1
 
         return outputLines

@@ -3,6 +3,7 @@ from typing_extensions import Optional, override, cast
 import numpy as np
 import pyvista as pv
 
+from common.MainLoggerHolder import MAIN_LOGGER
 from non_planar_slicing_deformation.configuration.CurrentDeformerState import CurrentDeformerState
 from non_planar_slicing_deformation.configuration import Defaults
 from non_planar_slicing_deformation.deformer.Deformer import Deformer
@@ -33,21 +34,33 @@ class SimpleDeformer(Deformer):
         mesh.points = cast(pv.pyvista_ndarray, mesh.points[:10])
 
         # max radius of part
-        max_radius = np.max(np.linalg.norm(mesh.points[:, :2], axis=1))
+        maxRadius = np.max(np.linalg.norm(mesh.points[:, :2], axis=1))
 
         # define rotation as a function of radius
         def rotation(radius: np.float64) -> np.float64:
-            return self.getParameters()["radius", float] * (radius / max_radius)
-            # return np.deg2rad(15 + 30 * (radius / max_radius))  # Use for propeller and tree
+            start = self.getParameters()["start", np.float64]
+            end = self.getParameters()["end", np.float64]
+
+            if end < start:
+                MAIN_LOGGER.warning(f"End radius {end} is lower than start radius {start}")
+
+            remappedRadius = np.where(radius < start, start, np.where(radius < end, radius, end))
+
+            a = self.getParameters()["zeroth order", np.float64]
+            b = self.getParameters()["first order", np.float64]
+            c = self.getParameters()["second order", np.float64]
+            normalizedRadius = (remappedRadius / maxRadius)
+            return a + b * normalizedRadius + c * normalizedRadius ** 2
+            # return np.deg2rad(15 + 30 * (radius / maxRadius))  # Use for propeller and tree
             # return np.full_like(radius, np.deg2rad(-40)) # Fixed rotation inwards
-            # return np.deg2rad(-40 + 30 * (1 - (radius / max_radius)) ** 2) # Use for bridge
+            # return np.deg2rad(-40 + 30 * (1 - (radius / maxRadius)) ** 2) # Use for bridge
 
         # rotate points around max diameter ring
         distances_to_center = np.linalg.norm(mesh.points[:, :2], axis=1)
         translate_upwards = np.hstack([
             np.zeros((len(mesh.points), 2)),
             np.tan(rotation(distances_to_center).reshape(-1, 1)) * distances_to_center.reshape(-1, 1)
-        ], dtype=np.float64)
+            ], dtype=np.float64)
 
         mesh.points = cast(pv.pyvista_ndarray, mesh.points + translate_upwards)
 
