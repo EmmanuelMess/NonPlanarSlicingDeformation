@@ -84,8 +84,10 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
             MAIN_LOGGER.warning("Gcode did not load")
             return
 
+        mesh, colorMap = GcodePlotHelper.plottable3AxisGcode(gcode)
+
         self.plotterLeft.clear_actors()
-        self.plotterLeft.add_mesh(GcodePlotHelper.plottable3AxisGcode(gcode))
+        self.plotterLeft.add_mesh(mesh, scalars=colorMap, cmap="prism")
 
         self.undeformer.setGcode(gcode)
         self._updateUndeformedMesh()
@@ -118,9 +120,7 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
             mesh, colorMap = GcodePlotHelper.plottable4AxisGcode(undeformedGcode)
 
             self.plotterRight.clear_actors()
-            self.plotterRight.add_mesh(
-                mesh,
-                scalars=colorMap
-                )
+            self.plotterRight.show_grid()
+            self.plotterRight.add_mesh(mesh, scalars=colorMap, cmap="prism")
         else:
             MAIN_LOGGER.error("Undeformed mesh cannot be shown!")

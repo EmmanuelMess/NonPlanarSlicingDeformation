@@ -38,18 +38,10 @@ class SimpleDeformer(Deformer):
 
         # define rotation as a function of radius
         def rotation(radius: np.float64) -> np.float64:
-            start = cast(np.float64, self.getParameters()["start", np.float64])  # TODO deal with None
-            end = cast(np.float64, self.getParameters()["end", np.float64])  # TODO deal with None
-
-            if end < start:
-                MAIN_LOGGER.warning(f"End radius {end} is lower than start radius {start}")
-
-            remappedRadius = np.where(radius < start, start, np.where(radius < end, radius, end))
-
             a = cast(np.float64, self.getParameters()["zeroth order", np.float64])  # TODO deal with None
             b = cast(np.float64, self.getParameters()["first order", np.float64])  # TODO deal with None
             c = cast(np.float64, self.getParameters()["second order", np.float64])  # TODO deal with None
-            normalizedRadius = (remappedRadius / maxRadius)
+            normalizedRadius = (radius / maxRadius)
             return a + b * normalizedRadius + c * normalizedRadius ** 2
             # return np.deg2rad(15 + 30 * (radius / maxRadius))  # Use for propeller and tree
             # return np.full_like(radius, np.deg2rad(-40)) # Fixed rotation inwards

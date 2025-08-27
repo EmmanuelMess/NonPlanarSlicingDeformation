@@ -7,8 +7,6 @@ simpleDeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
     "zeroth order": np.float64(0.0),
     "first order": np.float64(0.0),
     "second order": np.float64(0.0),
-    "start": np.float64(0.0),
-    "end": np.float64(10000.0),
     })
 simpleUndeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
 

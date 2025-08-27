@@ -17,7 +17,7 @@ G_COMMAND_4_AXIS_GCODE_REGEX = re.compile(
     )
 
 
-def plottable3AxisGcode(lines: List[str]) -> pv.PolyData:
+def plottable3AxisGcode(lines: List[str]) -> Tuple[pv.PolyData, np.ndarray]:
     """
     Simple function to convert gcode lines to a pv.PolyData that can be plotted
     """
@@ -26,6 +26,9 @@ def plottable3AxisGcode(lines: List[str]) -> pv.PolyData:
 
     points: List[Tuple[np.float64, np.float64, np.float64]] = []
 
+    layerIndex = 1  # Current layer
+    layerIndexMap: List[int] = []  # For each point, to what layer it corresponds
+
     x = np.float64(0)
     y = np.float64(0)
     z = np.float64(20)  # TODO check this
@@ -33,6 +36,10 @@ def plottable3AxisGcode(lines: List[str]) -> pv.PolyData:
     for gcodeLine in lines:
         line = pg.Line(gcodeLine)
         if not line.block.gcodes:
+            if line.comment:
+                if line.comment.text.startswith("LAYER:"):
+                    layerIndex += 1  # TODO use the actual layer in the file
+
             continue
 
         # extract position and feedrate
@@ -47,10 +54,12 @@ def plottable3AxisGcode(lines: List[str]) -> pv.PolyData:
 
                 # TODO check this
                 points.append((x, y, z))
+                layerIndexMap.append(layerIndex)
 
     pointArray = np.array(points)
+    layerIndexMapArray = np.array(layerIndexMap, dtype=np.int64)
 
-    return pv.PolyData(pointArray)
+    return pv.PolyData(pointArray), layerIndexMapArray[pointArray[:, 2] > 0]
 
 
 def plottable4AxisGcode(lines: List[str]) -> Tuple[pv.PolyData, np.ndarray]:

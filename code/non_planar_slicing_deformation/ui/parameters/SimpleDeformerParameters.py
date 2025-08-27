@@ -40,17 +40,6 @@ class SimpleDeformerParameters(DeformerParameters):
             )
         self.settingsLayout.addLayout(self.secondOrderSlider)
 
-        startSliderDefault = cast(np.float64, self.deformer.getParameters()["start", np.float64])
-        self.startSlider = self._labeledSlider(
-            Strings.startSlider, 0, 10000, np.int64(startSliderDefault * 100).item(), self.onStartChanged
-            )
-        self.settingsLayout.addLayout(self.startSlider)
-        endSliderDefault = cast(np.float64, self.deformer.getParameters()["end", np.float64])
-        self.endSlider = self._labeledSlider(
-            Strings.endSlider, 0, 10000, np.int64(endSliderDefault * 100).item(), self.onEndChanged
-            )
-        self.settingsLayout.addLayout(self.endSlider)
-
         self.setLayout(self.settingsLayout)
 
     def _labeledSlider(self, text: str, minv: int, maxv: int, default: int, slot: Callable[[int], None]) \
@@ -84,14 +73,4 @@ class SimpleDeformerParameters(DeformerParameters):
     @Slot(int)
     def onSecondOrderChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
         self.deformer.getParameters()["second order"] = np.float64(value) / 100
-        self.parameterUpdate.emit()
-
-    @Slot(int)
-    def onStartChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        self.deformer.getParameters()["start"] = np.float64(value) / 100
-        self.parameterUpdate.emit()
-
-    @Slot(int)
-    def onEndChanged(self, value: int) -> None:  # pylint: disable=missing-function-docstring
-        self.deformer.getParameters()["end"] = np.float64(value) / 100
         self.parameterUpdate.emit()
