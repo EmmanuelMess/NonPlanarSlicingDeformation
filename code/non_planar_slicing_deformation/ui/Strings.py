@@ -24,3 +24,4 @@ xTranslation = "Desplazamiento X"
 yTranslation = "Desplazamiento Y"
 
 homeAll = "Añadir recalibración al gcode (G28)"
+heatUpExtruder = "Añadir temperatura al gcode\n(M104 S205 y M109 S205)"

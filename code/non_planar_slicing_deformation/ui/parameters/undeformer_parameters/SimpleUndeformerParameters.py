@@ -25,12 +25,24 @@ class SimpleUndeformerParameters(UndeformerParameters):
         self.homeAllCheckbox = QCheckBox(Strings.homeAll)
         self.homeAllCheckbox.setCheckState(Qt.CheckState.Checked if homeAllCheckBoxDefault else Qt.CheckState.Unchecked)
         self.homeAllCheckbox.stateChanged.connect(self.onHomeAllChanged)
-
         self.settingsLayout.addWidget(self.homeAllCheckbox)
+
+        heatUpExtruderCheckBoxDefault = cast(bool, self.undeformer.getParameters()["heat extruder", bool])
+
+        self.heatUpExtruderCheckbox = QCheckBox(Strings.heatUpExtruder)
+        self.heatUpExtruderCheckbox.setCheckState(
+            Qt.CheckState.Checked if heatUpExtruderCheckBoxDefault else Qt.CheckState.Unchecked)
+        self.heatUpExtruderCheckbox.stateChanged.connect(self.onHeatUpExtruderChanged)
+        self.settingsLayout.addWidget(self.heatUpExtruderCheckbox)
 
         self.setLayout(self.settingsLayout)
 
-    @Slot(int)
+    @Slot(Qt.CheckState)
     def onHomeAllChanged(self, value: Qt.CheckState) -> None:  # pylint: disable=missing-function-docstring
         self.undeformer.getParameters()["home all"] = value == Qt.CheckState.Checked.value
+        self.parameterUpdate.emit()
+
+    @Slot(Qt.CheckState)
+    def onHeatUpExtruderChanged(self, value: Qt.CheckState) -> None:  # pylint: disable=missing-function-docstring
+        self.undeformer.getParameters()["heat extruder"] = value == Qt.CheckState.Checked.value
         self.parameterUpdate.emit()

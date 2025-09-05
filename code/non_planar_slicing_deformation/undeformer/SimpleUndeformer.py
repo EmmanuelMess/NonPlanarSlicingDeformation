@@ -112,6 +112,7 @@ class SimpleUndeformer(Undeformer):
         state = cast(SimpleDeformerState, CurrentDeformerState().getState())
 
         home_all = self.getParameters()["home all", bool]
+        heat_up_extruder = self.getParameters()["heat extruder", bool]
 
         # TODO split this into functions
 
@@ -170,6 +171,9 @@ class SimpleUndeformer(Undeformer):
         outputLines.append("G94 ; mm/min feed  ")
         if home_all:
             outputLines.append("G28 ; home ")
+        if heat_up_extruder:
+            outputLines.append("M104 S205 ; Heat extruder 0 to 205°C ")
+            outputLines.append("M109 S205 ; Heat extruder 0 to 205°C and wait")
         outputLines.append("M83 ; relative extrusion ")
         outputLines.append("G1 E10 ; prime extruder ")
         outputLines.append("G94 ; mm/min feed ")
@@ -239,5 +243,8 @@ class SimpleUndeformer(Undeformer):
                 prev_z = z
 
                 positionIndex += 1
+
+        if heat_up_extruder:
+            outputLines.append("M104 S0 ; Heat extruder to 0°C")
 
         return outputLines
