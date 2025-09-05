@@ -22,3 +22,5 @@ startSlider = "Radio inicial (expermiental)"
 endSlider = "Radio final (expermiental)"
 xTranslation = "Desplazamiento X"
 yTranslation = "Desplazamiento Y"
+
+homeAll = "Añadir recalibración al gcode (G28)"

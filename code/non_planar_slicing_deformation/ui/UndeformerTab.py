@@ -1,8 +1,9 @@
 import pyvistaqt as pvqt  # type: ignore
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog
 from typing_extensions import Optional, List
 
+from non_planar_slicing_deformation.common import Constants
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
 from non_planar_slicing_deformation.configuration.Configuration import Configuration
 from non_planar_slicing_deformation.ui import Strings, GcodePlotHelper
@@ -25,12 +26,6 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
         self.plottersLayout = QHBoxLayout(self)
         self.buttonLayout = QHBoxLayout(self)
 
-        self.settingsLayout = QVBoxLayout(self)
-        self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        self.rootLayout.addLayout(self.centralLayout)
-        self.rootLayout.addLayout(self.settingsLayout)
-
         # TODO add controls tutorial
         # TODO link both plotters's cameras
         self.plotterLeft = pvqt.QtInteractor()
@@ -48,6 +43,13 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
         self.outputModelButton = QPushButton(Strings.saveGcode)
         self.outputModelButton.clicked.connect(self.onSelectOutputFile)
         self.buttonLayout.addWidget(self.outputModelButton)
+
+        self.undeformerParameters = configuration.undeformerParameters(self.undeformer)
+        self.undeformerParameters.setFixedWidth(Constants.widthSettings)
+        self.undeformerParameters.parameterUpdate.connect(self.onParameterUpdated)
+
+        self.rootLayout.addLayout(self.centralLayout)
+        self.rootLayout.addWidget(self.undeformerParameters)
 
         self.inputFileDialog = QFileDialog(self)
         self.inputFileDialog.setFileMode(QFileDialog.FileMode.ExistingFile)
@@ -124,3 +126,12 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
             self.plotterRight.add_mesh(mesh, scalars=colorMap, cmap="prism")
         else:
             MAIN_LOGGER.error("Undeformed mesh cannot be shown!")
+
+    @Slot()
+    def onParameterUpdated(self) -> None:  # pylint: disable=missing-function-docstring
+        if self.undeformer is None:
+            MAIN_LOGGER.error("Undeformer is None, did you forget to call setConfiguration?")
+            return
+
+        # Rerun the complete undeformer
+        self.undeformer.undeform()

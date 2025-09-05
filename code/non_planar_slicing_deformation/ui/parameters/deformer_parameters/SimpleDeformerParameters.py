@@ -5,7 +5,7 @@ from typing_extensions import Optional, Callable, cast, Tuple
 
 from non_planar_slicing_deformation.deformer.SimpleDeformer import SimpleDeformer
 from non_planar_slicing_deformation.ui import Strings
-from non_planar_slicing_deformation.ui.parameters.DeformerParameters import DeformerParameters
+from non_planar_slicing_deformation.ui.parameters.deformer_parameters.DeformerParameters import DeformerParameters
 
 
 class SimpleDeformerParameters(DeformerParameters):

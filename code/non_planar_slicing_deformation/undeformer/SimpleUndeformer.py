@@ -111,6 +111,8 @@ class SimpleUndeformer(Undeformer):
 
         state = cast(SimpleDeformerState, CurrentDeformerState().getState())
 
+        home_all = self.getParameters()["home all", bool]
+
         # TODO split this into functions
 
         # read gcode
@@ -166,7 +168,8 @@ class SimpleUndeformer(Undeformer):
         outputLines: List[str] = []
         # write header
         outputLines.append("G94 ; mm/min feed  ")
-        outputLines.append("G28 ; home ")
+        if home_all:
+            outputLines.append("G28 ; home ")
         outputLines.append("M83 ; relative extrusion ")
         outputLines.append("G1 E10 ; prime extruder ")
         outputLines.append("G94 ; mm/min feed ")

@@ -9,7 +9,7 @@ simpleDeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
     "second order": np.float64(0.0),
     })
 simpleUndeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
-
+    "home all": False,
     })
 
 threeAxisDeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({

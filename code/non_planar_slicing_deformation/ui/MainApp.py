@@ -14,8 +14,14 @@ from non_planar_slicing_deformation.ui.ModeSelectorWindow import ModeSelectorWin
 from non_planar_slicing_deformation.undeformer.SimpleUndeformer import SimpleUndeformer
 from non_planar_slicing_deformation.ui.LogsWindow import LogsWindow
 from non_planar_slicing_deformation.undeformer.ThreeAxisUndeformer import ThreeAxisUndeformer
-from non_planar_slicing_deformation.ui.parameters.SimpleDeformerParameters import SimpleDeformerParameters
-from non_planar_slicing_deformation.ui.parameters.ThreeAxisDeformerParameters import ThreeAxisDeformerParameters
+from non_planar_slicing_deformation.ui.parameters.deformer_parameters.SimpleDeformerParameters\
+    import SimpleDeformerParameters
+from non_planar_slicing_deformation.ui.parameters.deformer_parameters.ThreeAxisDeformerParameters\
+    import ThreeAxisDeformerParameters
+from non_planar_slicing_deformation.ui.parameters.undeformer_parameters.SimpleUndeformerParameters\
+    import SimpleUndeformerParameters
+from non_planar_slicing_deformation.ui.parameters.undeformer_parameters.ThreeAxisUndeformerParameters\
+    import ThreeAxisUndeformerParameters
 
 
 class MainApp(metaclass=Singleton):
@@ -26,12 +32,14 @@ class MainApp(metaclass=Singleton):
     _CONFIGURATION: Dict[Mode, Configuration] = {
         Mode.FOUR_AXIS_SIMPLE: Configuration(
             deformer=SimpleDeformer, undeformer=SimpleUndeformer,
-            defomerParameters=lambda deformer: SimpleDeformerParameters(cast(SimpleDeformer, deformer))
+            defomerParameters=lambda deformer: SimpleDeformerParameters(cast(SimpleDeformer, deformer)),
+            undeformerParameters=lambda undeformer: SimpleUndeformerParameters(cast(SimpleUndeformer, undeformer))
             ),
         # Mode.FOUR_S: None,
         Mode.THREE_AXIS: Configuration(
             deformer=ThreeAxisDeformer, undeformer=ThreeAxisUndeformer,
-            defomerParameters=lambda deformer: ThreeAxisDeformerParameters(cast(ThreeAxisDeformer, deformer))
+            defomerParameters=lambda deformer: ThreeAxisDeformerParameters(cast(ThreeAxisDeformer, deformer)),
+            undeformerParameters=lambda undeformer: ThreeAxisUndeformerParameters(cast(ThreeAxisUndeformer, undeformer))
             ),
         }
 
