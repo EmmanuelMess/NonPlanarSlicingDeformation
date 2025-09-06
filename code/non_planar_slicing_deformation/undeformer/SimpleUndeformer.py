@@ -244,6 +244,12 @@ class SimpleUndeformer(Undeformer):
 
                 positionIndex += 1
 
+        outputLines.append("G90 ; absolute positioning ")
+        outputLines.append("G0 Z200 ; Move extruder up")
+        outputLines.append("M400 ; wait for moves to finish")
+        outputLines.append("G0 B0 ; rotate extruder to 0°")
+        outputLines.append("M400 ; wait for moves to finish")
+
         if heat_up_extruder:
             outputLines.append("M104 S0 ; Heat extruder to 0°C")
 
