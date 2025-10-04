@@ -4,7 +4,6 @@ from PySide6 import QtWidgets
 from PySide6.QtCore import Slot
 from typing_extensions import Dict, cast
 
-from non_planar_slicing_deformation.deformer.ThreeAxisDeformer import ThreeAxisDeformer
 from non_planar_slicing_deformation.common.Singleton import Singleton
 from non_planar_slicing_deformation.configuration.Configuration import Configuration
 from non_planar_slicing_deformation.deformer.SimpleDeformer import SimpleDeformer
@@ -13,15 +12,10 @@ from non_planar_slicing_deformation.ui.Mode import Mode
 from non_planar_slicing_deformation.ui.ModeSelectorWindow import ModeSelectorWindow
 from non_planar_slicing_deformation.undeformer.SimpleUndeformer import SimpleUndeformer
 from non_planar_slicing_deformation.ui.LogsWindow import LogsWindow
-from non_planar_slicing_deformation.undeformer.ThreeAxisUndeformer import ThreeAxisUndeformer
 from non_planar_slicing_deformation.ui.parameters.deformer_parameters.SimpleDeformerParameters\
     import SimpleDeformerParameters
-from non_planar_slicing_deformation.ui.parameters.deformer_parameters.ThreeAxisDeformerParameters\
-    import ThreeAxisDeformerParameters
 from non_planar_slicing_deformation.ui.parameters.undeformer_parameters.SimpleUndeformerParameters\
     import SimpleUndeformerParameters
-from non_planar_slicing_deformation.ui.parameters.undeformer_parameters.ThreeAxisUndeformerParameters\
-    import ThreeAxisUndeformerParameters
 
 
 class MainApp(metaclass=Singleton):
@@ -36,11 +30,6 @@ class MainApp(metaclass=Singleton):
             undeformerParameters=lambda undeformer: SimpleUndeformerParameters(cast(SimpleUndeformer, undeformer))
             ),
         # Mode.FOUR_S: None,
-        Mode.THREE_AXIS: Configuration(
-            deformer=ThreeAxisDeformer, undeformer=ThreeAxisUndeformer,
-            defomerParameters=lambda deformer: ThreeAxisDeformerParameters(cast(ThreeAxisDeformer, deformer)),
-            undeformerParameters=lambda undeformer: ThreeAxisUndeformerParameters(cast(ThreeAxisUndeformer, undeformer))
-            ),
         }
 
     def __init__(self) -> None:
