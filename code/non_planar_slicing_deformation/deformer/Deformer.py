@@ -1,20 +1,28 @@
 import os
-from abc import abstractmethod, ABCMeta
-from typing_extensions import Optional
 
 import pyvista as pv
+from PySide6.QtCore import Slot, QObject, Signal
+from typing_extensions import Optional, Any
 
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
 from non_planar_slicing_deformation.configuration.KeyValueParameters import KeyValueParameters
+from non_planar_slicing_deformation.deformer.worker.DeformerWorker import DeformerWorker
 
 
-class Deformer(metaclass=ABCMeta):
+class Deformer(QObject):
     """
     Generic class representing a deformation of the mesh
     """
 
-    def __init__(self, parameters: KeyValueParameters) -> None:
+    finishedDeformation = Signal(Any)  # Real type Signal[Optional[pv.DataSet]], hack because PySide6 is broken
+
+    def __init__(self, parameters: KeyValueParameters, worker: DeformerWorker, /) -> None:
+        super().__init__()
         self.parameters = parameters
+        self.worker: DeformerWorker = worker
+        self.worker.setParent(self)
+        self.worker.result.connect(self.setDeformedMesh)
+
         self.mesh: Optional[pv.DataSet] = None
         self.deformedMesh: Optional[pv.DataSet] = None
 
@@ -41,31 +49,26 @@ class Deformer(metaclass=ABCMeta):
 
         self.deformedMesh.save(path)
 
-    def getDeformedMesh(self) -> Optional[pv.DataSet]:
+    @Slot(pv.DataSet)
+    def setDeformedMesh(self, deformedMesh: Optional[pv.DataSet]) -> None:
         """
-        Get a reference to the deformed mesh if it was correctly created
+        This is meant for the worker to use it
         """
-        return self.deformedMesh
+        self.deformedMesh = deformedMesh
 
-    def deform(self) -> bool:
+        self.finishedDeformation.emit(deformedMesh)
+
+    def deform(self) -> None:
         """
         Deform the mesh, this can fail
         :return: if successful
         """
         if self.mesh is None:
             MAIN_LOGGER.error("Mesh is not set, did you forget to call setMesh?")
-            return False
+            return
 
-        self.deformedMesh = self.deformImplementation(self.mesh)
-
-        return self.deformedMesh is not None
-
-    @abstractmethod
-    def deformImplementation(self, mesh: pv.DataSet) -> Optional[pv.DataSet]:
-        """
-        Hidden implementation for :func:`~deform` that subclasses must implement.
-        This must not be used outside :class:`Deformer`.
-        """
+        self.worker.setArgs(self.mesh, self.getParameters())
+        self.worker.start()
 
     def getParameters(self) -> KeyValueParameters:
         """

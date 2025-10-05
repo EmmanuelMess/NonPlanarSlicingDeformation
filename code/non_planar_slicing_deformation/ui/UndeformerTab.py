@@ -19,6 +19,7 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
         super().__init__(parent)
 
         self.undeformer: Undeformer = configuration.undeformer()
+        self.undeformer.finishedUndeformation.connect(self._onFinishedUndeformation)
 
         # Layout
         self.rootLayout = QHBoxLayout(self)
@@ -116,8 +117,9 @@ class UndeformerTab(QWidget):  # pylint: disable=duplicate-code
             return
 
         self.undeformer.undeform()
-        undeformedGcode: Optional[List[str]] = self.undeformer.getUndeformedGcode()
 
+    @Slot()
+    def _onFinishedUndeformation(self, undeformedGcode: Optional[List[str]]) -> None:
         if undeformedGcode is not None:
             mesh, colorMap = GcodePlotHelper.plottable4AxisGcode(undeformedGcode)
 

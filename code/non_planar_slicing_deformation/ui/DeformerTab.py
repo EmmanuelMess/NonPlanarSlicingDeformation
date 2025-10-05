@@ -21,6 +21,7 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
 
         # State
         self.deformer: Deformer = configuration.deformer()
+        self.deformer.finishedDeformation.connect(self._onFinishedDeformation)
 
         # Layout
         self.rootLayout = QHBoxLayout()
@@ -119,7 +120,9 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
             return
 
         self.deformer.deform()
-        deformedMesh: Optional[pv.DataSet] = self.deformer.getDeformedMesh()
+
+    def _onFinishedDeformation(self, mesh: pv.DataSet) -> None:
+        deformedMesh: Optional[pv.DataSet] = mesh
 
         if deformedMesh is not None:
             self.plotterRight.clear_actors()
