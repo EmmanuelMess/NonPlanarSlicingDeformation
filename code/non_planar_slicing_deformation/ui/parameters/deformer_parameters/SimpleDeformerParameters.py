@@ -23,20 +23,23 @@ class SimpleDeformerParameters(DeformerParameters):
         self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         zerothOrderSliderDefault = cast(np.float64, self.deformer.getParameters()["zeroth order", np.float64])
+        firstOrderSliderText = f"{Strings.zerothOrderSlider} ({zerothOrderSliderDefault / 100})"
         self.zerothOrderSlider, self.zerothOrderText = UiFunctions.labeledSlider(
-            f"{Strings.zerothOrderSlider} ({zerothOrderSliderDefault / 100})", -100, 100, np.int64(zerothOrderSliderDefault * 100).item(),
+            firstOrderSliderText, -100, 100, np.int64(zerothOrderSliderDefault * 100).item(),
             self.onZerothOrderChanged
             )
         self.settingsLayout.addLayout(self.zerothOrderSlider)
         firstOrderSliderDefault = cast(np.float64, self.deformer.getParameters()["first order", np.float64])
+        firstOrderSliderText = f"{Strings.firstOrderSlider} ({firstOrderSliderDefault / 100})"
         self.firstOrderSlider, self.firstOrderText = UiFunctions.labeledSlider(
-            f"{Strings.firstOrderSlider} ({firstOrderSliderDefault / 100})", -100, 100, np.int64(firstOrderSliderDefault * 100).item(),
+            firstOrderSliderText, -100, 100, np.int64(firstOrderSliderDefault * 100).item(),
             self.onFirstOrderChanged
             )
         self.settingsLayout.addLayout(self.firstOrderSlider)
         secondOrderSliderDefault = cast(np.float64, self.deformer.getParameters()["second order", np.float64])
+        secondOrderSliderText = f"{Strings.secondOrderSlider} ({secondOrderSliderDefault / 100})"
         self.secondOrderSlider, self.secondOrderText = UiFunctions.labeledSlider(
-            f"{Strings.secondOrderSlider} ({secondOrderSliderDefault / 100})", -10, 10, np.int64(secondOrderSliderDefault * 100).item(),
+            secondOrderSliderText, -10, 10, np.int64(secondOrderSliderDefault * 100).item(),
             self.onSecondOrderChanged
             )
         self.settingsLayout.addLayout(self.secondOrderSlider)
