@@ -11,6 +11,7 @@ simpleDeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
 simpleUndeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
     "home all": False,
     "heat extruder": True,
+    "heat extruder temperature": 215,
     })
 
 threeAxisDeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({

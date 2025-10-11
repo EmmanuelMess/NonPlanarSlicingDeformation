@@ -53,13 +53,13 @@ class Undeformer(QObject):
         return self.undeformedGcode
 
     @Slot()
-    def setUndeformedGcode(self, undeformedMesh: Optional[List[str]]) -> None:
+    def setUndeformedGcode(self, undeformedGcode: Optional[List[str]]) -> None:
         """
         This is meant for the worker to use it
         """
-        self.undeformedMesh = undeformedMesh
+        self.undeformedGcode = undeformedGcode
 
-        self.finishedUndeformation.emit(undeformedMesh)
+        self.finishedUndeformation.emit(undeformedGcode)
 
     def save(self, path: str) -> None:
         """

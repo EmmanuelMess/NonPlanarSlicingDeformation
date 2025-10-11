@@ -5,6 +5,7 @@ from typing_extensions import Optional, cast
 from non_planar_slicing_deformation.ui.parameters.undeformer_parameters.UndeformerParameters import UndeformerParameters
 from non_planar_slicing_deformation.undeformer.SimpleUndeformer import SimpleUndeformer
 from non_planar_slicing_deformation.ui import Strings
+from non_planar_slicing_deformation.ui.parameters import UiFunctions
 
 
 class SimpleUndeformerParameters(UndeformerParameters):
@@ -35,6 +36,12 @@ class SimpleUndeformerParameters(UndeformerParameters):
         self.heatUpExtruderCheckbox.stateChanged.connect(self.onHeatUpExtruderChanged)
         self.settingsLayout.addWidget(self.heatUpExtruderCheckbox)
 
+        temperatureSliderDefault = cast(int, self.undeformer.getParameters()["heat extruder temperature", int])
+        temperatureSliderText = f"{Strings.temperatureSlider} ({temperatureSliderDefault}°C)"
+        self.temperatureSlider, self.temperatureText = UiFunctions.labeledSlider(
+            temperatureSliderText, 190, 250, temperatureSliderDefault, self.onTemperatureChanged)
+        self.settingsLayout.addLayout(self.temperatureSlider)
+
         self.setLayout(self.settingsLayout)
 
     @Slot(Qt.CheckState)
@@ -46,3 +53,10 @@ class SimpleUndeformerParameters(UndeformerParameters):
     def onHeatUpExtruderChanged(self, value: Qt.CheckState) -> None:  # pylint: disable=missing-function-docstring
         self.undeformer.getParameters()["heat extruder"] = value == Qt.CheckState.Checked.value
         self.parameterUpdate.emit()
+
+    @Slot(float)
+    def onTemperatureChanged(self, value: float) -> None:  # pylint: disable=missing-function-docstring
+        self.undeformer.getParameters()["heat extruder temperature"] = value
+        self.parameterUpdate.emit()
+
+        self.temperatureText.setText(f"{Strings.temperatureSlider} ({value}°C)")

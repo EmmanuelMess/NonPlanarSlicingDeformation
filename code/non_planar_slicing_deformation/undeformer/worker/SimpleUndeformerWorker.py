@@ -112,6 +112,7 @@ class SimpleUndeformerWorker(UndeformerWorker):
 
         home_all = self.parameters["home all", bool]
         heat_up_extruder = self.parameters["heat extruder", bool]
+        temperature = self.parameters["heat extruder temperature", int]
 
         # TODO split this into functions
 
@@ -171,8 +172,8 @@ class SimpleUndeformerWorker(UndeformerWorker):
         if home_all:
             outputLines.append("G28 ; home ")
         if heat_up_extruder:
-            outputLines.append("M104 S205 ; Heat extruder 0 to 205°C ")
-            outputLines.append("M109 S205 ; Heat extruder 0 to 205°C and wait")
+            outputLines.append(f"M104 S{temperature} ; Heat extruder 0°C to {temperature}°C ")
+            outputLines.append(f"M109 S{temperature} ; Heat extruder 0°C to {temperature}°C and wait")
         outputLines.append("M83 ; relative extrusion ")
         outputLines.append("G1 E10 ; prime extruder ")
         outputLines.append("G94 ; mm/min feed ")
