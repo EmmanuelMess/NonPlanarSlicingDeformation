@@ -42,6 +42,10 @@ class Undeformer(QObject):
             MAIN_LOGGER.error("Missing gcode, did you forget to call setGcode?")
             return
 
+        if self.worker.isRunning():
+            MAIN_LOGGER.warning("Undeformer worker is running, killing before starting again")
+            self.worker.terminate()
+
         self.worker.setArgs(self.gcode, self.getParameters())
         self.worker.start()
 

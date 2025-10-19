@@ -71,6 +71,6 @@ class SimpleDeformerWorker(DeformerWorker):
 
         endTime = time.time()
 
-        MAIN_LOGGER.debug(f"Deform time {endTime - startTime}s")
+        MAIN_LOGGER.debug(f"Simple deform time {endTime - startTime}s")
 
         self.result.emit(mesh)

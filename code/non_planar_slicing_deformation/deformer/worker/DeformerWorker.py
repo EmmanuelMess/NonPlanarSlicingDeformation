@@ -11,6 +11,7 @@ class DeformerWorker(QThread):
 
     def __init__(self, /) -> None:
         super().__init__()
+
         self.mesh: Optional[pv.DataSet] = None
         self.parameters: Optional[KeyValueParameters] = None
 

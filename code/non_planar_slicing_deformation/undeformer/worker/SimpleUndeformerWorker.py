@@ -82,7 +82,7 @@ class SimpleUndeformerWorker(UndeformerWorker):
                         moveLength=seg_distance,
                         startPosition=prev_pos,
                         endPosition=pos,
-                        unsegmentedMoveLength=distance
+                        unsegmentedMoveLength=distance,
                         ))
             else:
                 gcodePoints.append(FastMove(
@@ -90,7 +90,7 @@ class SimpleUndeformerWorker(UndeformerWorker):
                     command=nextGcodeBlock.word,
                     extrusion=extrusion,
                     inverseTimeFeed=None,
-                    moveLength=0
+                    moveLength=0,
                     ))
 
         return gcodePoints
@@ -113,6 +113,7 @@ class SimpleUndeformerWorker(UndeformerWorker):
         home_all = self.parameters["home all", bool]
         heat_up_extruder = self.parameters["heat extruder", bool]
         temperature = self.parameters["heat extruder temperature", int]
+        nozzleOffset = cast(float, self.parameters["nozzle offset", float])
 
         # TODO split this into functions
 
@@ -155,8 +156,6 @@ class SimpleUndeformerWorker(UndeformerWorker):
         for i, commands in enumerate(gcodeMoves):
             if commands.extrusion is not None:
                 commands.extrusion *= extrusion_scales[i]
-
-        NOZZLE_OFFSET = np.float64(42.5)  # mm
 
         prev_r = np.float64(0)
         prev_theta = np.float64(0)
@@ -206,8 +205,8 @@ class SimpleUndeformerWorker(UndeformerWorker):
                 rotation = state.rotation(r)
 
                 # compensate for nozzle offset
-                r += np.sin(rotation) * NOZZLE_OFFSET
-                z += (np.cos(rotation) - 1) * NOZZLE_OFFSET
+                r += np.sin(rotation) * nozzleOffset
+                z += (np.cos(rotation) - 1) * nozzleOffset
 
                 delta_theta = theta - prev_theta
                 if delta_theta > np.pi:

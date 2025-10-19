@@ -1,19 +1,19 @@
-from PySide6.QtCore import Slot, Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QCheckBox
 from typing_extensions import Optional, cast
 
 from non_planar_slicing_deformation.ui.parameters.undeformer_parameters.UndeformerParameters import UndeformerParameters
-from non_planar_slicing_deformation.undeformer.SimpleUndeformer import SimpleUndeformer
+from non_planar_slicing_deformation.undeformer.s4_undeformer.S4Undeformer import S4Undeformer
 from non_planar_slicing_deformation.ui import Strings
 from non_planar_slicing_deformation.ui.parameters import UiFunctions
 
 
-class SimpleUndeformerParameters(UndeformerParameters):
+class S4UndeformerParameters(UndeformerParameters):
     """
-    UI for :class:`SimpleUndeformer`
+    UI for S4 undeformer
     """
 
-    def __init__(self, undeformer: SimpleUndeformer, parent: Optional[QWidget] = None):
+    def __init__(self, undeformer: S4Undeformer, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
         self.undeformer = undeformer
@@ -22,14 +22,12 @@ class SimpleUndeformerParameters(UndeformerParameters):
         self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         homeAllCheckBoxDefault = cast(bool, self.undeformer.getParameters()["home all", bool])
-
         self.homeAllCheckbox = QCheckBox(Strings.homeAll)
         self.homeAllCheckbox.setCheckState(Qt.CheckState.Checked if homeAllCheckBoxDefault else Qt.CheckState.Unchecked)
         self.homeAllCheckbox.stateChanged.connect(self.onHomeAllChanged)
         self.settingsLayout.addWidget(self.homeAllCheckbox)
 
         heatUpExtruderCheckBoxDefault = cast(bool, self.undeformer.getParameters()["heat extruder", bool])
-
         self.heatUpExtruderCheckbox = QCheckBox(Strings.heatUpExtruder)
         self.heatUpExtruderCheckbox.setCheckState(
             Qt.CheckState.Checked if heatUpExtruderCheckBoxDefault else Qt.CheckState.Unchecked)

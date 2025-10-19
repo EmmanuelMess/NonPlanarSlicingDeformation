@@ -2,6 +2,10 @@ setuptools
 PySide6
 typing-extensions
 numpy
+scipy
 pyvistaqt
 pygcode
 argparse
+open3d
+tetgen
+networkx

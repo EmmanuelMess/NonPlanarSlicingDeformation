@@ -1,7 +1,7 @@
 import os
 
 import pyvista as pv
-from PySide6.QtCore import Slot, QObject, Signal
+from PySide6.QtCore import Slot, QObject, Signal, QThread
 from typing_extensions import Optional, Any
 
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
@@ -26,11 +26,18 @@ class Deformer(QObject):
         self.mesh: Optional[pv.DataSet] = None
         self.deformedMesh: Optional[pv.DataSet] = None
 
-    def setMesh(self, mesh: pv.DataSet) -> None:
+    def setMeshPath(self, path: str) -> None:
         """
         Set the input mesh to deform
         """
-        self.mesh = mesh
+
+        loadedMesh: pv.DataObject = pv.read(path)
+
+        if not isinstance(loadedMesh, pv.DataSet):
+            MAIN_LOGGER.warning("Model is not a pv.DataSet!")
+            return
+
+        self.mesh = loadedMesh
 
     def save(self, path: str) -> None:
         """
@@ -67,8 +74,12 @@ class Deformer(QObject):
             MAIN_LOGGER.error("Mesh is not set, did you forget to call setMesh?")
             return
 
+        if self.worker.isRunning():
+            MAIN_LOGGER.warning("Deformer worker is running, killing before starting again")
+            self.worker.terminate()
+
         self.worker.setArgs(self.mesh, self.getParameters())
-        self.worker.start()
+        self.worker.start(QThread.Priority.HighestPriority)
 
     def getParameters(self) -> KeyValueParameters:
         """

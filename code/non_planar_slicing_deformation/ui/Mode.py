@@ -7,4 +7,4 @@ class Mode(Enum):
     using different algorithms
     """
     FOUR_AXIS_SIMPLE = 0
-    # FOUR_S = 1
+    FOUR_S = 1

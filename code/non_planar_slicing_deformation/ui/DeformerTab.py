@@ -2,7 +2,7 @@ import pyvista as pv
 import pyvistaqt as pvqt  # type: ignore
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QFileDialog, QPushButton, QHBoxLayout
-from typing_extensions import Optional, cast
+from typing_extensions import Optional
 
 from non_planar_slicing_deformation.common import Constants
 from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
@@ -95,7 +95,7 @@ class DeformerTab(QWidget):  # pylint: disable=duplicate-code
         self.plotterLeft.clear_actors()
         self.plotterLeft.add_mesh(loadedMesh)
 
-        self.deformer.setMesh(cast(pv.DataSet, loadedMesh))
+        self.deformer.setMeshPath(path)
         self._updateDeformedMesh()
 
     @Slot()
