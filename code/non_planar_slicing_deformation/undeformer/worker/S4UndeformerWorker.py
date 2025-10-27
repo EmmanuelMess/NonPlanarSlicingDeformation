@@ -242,7 +242,8 @@ class S4UndeformerWorker(UndeformerWorker):
             extrusion: Optional[float] = gcode_point["extrusion"]
 
             def barycentric_interpolate_to_get_new_position_and_rotation(position: np.ndarray,
-                                                                         containing_cell_index: int, command: str,
+                                                                         containing_cell_index: int,
+                                                                         command: str,
                                                                          cell_index: int) \
                     -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
                 if command == "G00" and containing_cell_index == -1:  # Strict on travel moves being inside a tet
@@ -413,12 +414,8 @@ class S4UndeformerWorker(UndeformerWorker):
 
             theta_accum += delta_theta
 
-            string = f"{
-                point['command']} C{
-                np.rad2deg(theta_accum):.5f} X{
-                r:.5f} Z{
-                z:.5f} B{
-                    np.rad2deg(rotation):.5f}"  # polar printer
+            # polar printer
+            string = f"{point['command']} C{np.rad2deg(theta_accum):.5f} X{r:.5f} Z{z:.5f} B{np.rad2deg(rotation):.5f}"
             # string = f"{point['command']} X{position[0]:.5f} Y{position[1]:.5f}
             # Z{position[2]} B{np.rad2deg(rotation):.5f}" # cartesian printer (3 axis)
 

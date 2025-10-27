@@ -23,11 +23,9 @@ jobs:
           # - windows-2022 # can't actually run tests
         version:
           - '3.12'
-          - '3.10'
-          - '3.8'
+          - '3.11'
+          - 'pypy3.12'
           # - 'pypy3.10' # broken PySide6 https://stackoverflow.com/a/76345084/3124150
-          # - 'pypy3.9' # Make it work
-          # - 'pypy3.8' # broken PySide6 https://stackoverflow.com/a/76345084/3124150
     steps:
       - uses: actions/checkout@v4
         with:
