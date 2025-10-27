@@ -24,14 +24,13 @@ jobs:
         version:
           - '3.12'
           - '3.11'
-          - 'pypy3.12'
-          # - 'pypy3.10' # broken PySide6 https://stackoverflow.com/a/76345084/3124150
+          # - 'pypy3.11' # broken PySide6 https://stackoverflow.com/a/76345084/3124150
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Set up Python ${{ matrix.version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.version }}
 
