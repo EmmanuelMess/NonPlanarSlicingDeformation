@@ -82,17 +82,16 @@ class S4DeformerParameters(DeformerParameters):
         initialRotationFieldSmoothingDefault = cast(
             np.int64, self.deformer.getParameters()[
                 "initial rotation field smoothing", np.int64])
-        initialRotationFieldSmoothingText = f"{
-            Strings.initialRotationFieldSmoothing} ({initialRotationFieldSmoothingDefault})"
+        initialRotationFieldSmoothingText = \
+            f"{Strings.initialRotationFieldSmoothing} ({initialRotationFieldSmoothingDefault})"
         self.initialRotationFieldSmoothingSlider, self.initialRotationFieldSmoothingText = UiFunctions.labeledSlider(
             initialRotationFieldSmoothingText, 0, 100, toInt(initialRotationFieldSmoothingDefault),
             self.onInitialRotationFieldSmoothingChanged
             )
         self.settingsLayout.addLayout(self.initialRotationFieldSmoothingSlider)
 
-        optimizeRotationIterationsDefault = cast(
-            np.int64, self.deformer.getParameters()[
-                "optimize rotation iterations", np.int64])
+        optimizeRotationIterationsDefault = \
+            cast(np.int64, self.deformer.getParameters()["optimize rotation iterations", np.int64])
         optimizeRotationIterationsText = f"{Strings.optimizeRotationIterations} ({optimizeRotationIterationsDefault})"
         self.optimizeRotationIterationsSlider, self.optimizeRotationIterationsText = UiFunctions.labeledSlider(
             optimizeRotationIterationsText, 0, 1000, toInt(optimizeRotationIterationsDefault),
@@ -100,24 +99,21 @@ class S4DeformerParameters(DeformerParameters):
             )
         self.settingsLayout.addLayout(self.optimizeRotationIterationsSlider)
 
-        steepOverhangCompensationDefault = cast(
-            bool, self.deformer.getParameters()[
-                "steep overhang compensation", bool])
+        steepOverhangCompensationDefault = \
+            cast(bool, self.deformer.getParameters()["steep overhang compensation", bool])
         self.steepOverhangCompensationCheckbox = QCheckBox(Strings.steepOverhangCompensation)
         self.steepOverhangCompensationCheckbox.setCheckState(
             Qt.CheckState.Checked if steepOverhangCompensationDefault else Qt.CheckState.Unchecked)
         self.steepOverhangCompensationCheckbox.stateChanged.connect(self.onSteepOverhangCompensationChanged)
         self.settingsLayout.addWidget(self.steepOverhangCompensationCheckbox)
 
-        calculateDeformationIterationsDefault = cast(
-            np.int64, self.deformer.getParameters()[
-                "calculate deformation iterations", np.int64])
-        calculateDeformationIterationsText = f"{
-            Strings.calculateDeformationIterations} ({calculateDeformationIterationsDefault})"
+        calculateDeformationIterationsDefault = \
+            cast(np.int64, self.deformer.getParameters()["calculate deformation iterations", np.int64])
+        calculateDeformationIterationsText = \
+            f"{Strings.calculateDeformationIterations} ({calculateDeformationIterationsDefault})"
         self.calculateDeformationIterationsSlider, self.calculateDeformationIterationsText = UiFunctions.labeledSlider(
             calculateDeformationIterationsText, 0, 1000, toInt(calculateDeformationIterationsDefault),
-            self.onCalculateDeformationIterationsChanged
-            )
+            self.onCalculateDeformationIterationsChanged)
         self.settingsLayout.addLayout(self.calculateDeformationIterationsSlider)
 
         self.applyParametersButton = QPushButton(Strings.applyParameters)
