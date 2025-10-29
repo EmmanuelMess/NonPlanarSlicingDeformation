@@ -1,20 +1,16 @@
 import base64
 import pickle
-import time
 
-from numpy.linalg import svd
 import networkx as nx
+import numpy as np
 import pyvista as pv
+import scipy
+from numpy.linalg import svd
 from pyvista import DataSet
 from pyvista.plotting import _vtk
-from typing_extensions import Final, Any, Tuple, Dict, List, cast, Set
-
-import numpy as np
-import scipy
 from scipy.sparse import lil_matrix
 from scipy.spatial.transform import Rotation as R
-
-from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
+from typing_extensions import Final, Any, Tuple, Dict, List, cast, Set
 
 """
 These are the S4 functions, that should be renamed and moved to other places

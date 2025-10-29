@@ -28,7 +28,7 @@ class S4DeformerWorker(DeformerWorker):
         super().__init__()
         self.surface: Optional[pv.PolyData] = None
 
-    def run(self) -> None:
+    def run(self) -> None:  # noqa: C901
         startTime = time.time()
 
         MAIN_LOGGER.debug("S4 Deform started")
