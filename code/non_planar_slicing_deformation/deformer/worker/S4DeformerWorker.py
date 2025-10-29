@@ -65,8 +65,12 @@ class S4DeformerWorker(DeformerWorker):
         startTimeTetrahedralize = time.time()
         # convert to tetrahedral mesh
         input_tet = tetgen.TetGen(np.asarray(self.mesh.vertices), np.asarray(self.mesh.triangles))
-        # input_tet.make_manifold() # comment out if not needed
-        input_tet.tetrahedralize()
+        try:
+            input_tet.tetrahedralize()
+        except RuntimeError:  # for RuntimeError: Failed to tetrahedralize.
+            MAIN_LOGGER.warning("RuntimeError tetrahedralizing, running make_manifold and retrying")
+            input_tet.make_manifold()
+            input_tet.tetrahedralize()
         input_tet = input_tet.grid
         MAIN_LOGGER.debug(f"S4 Deform tetrahedralize {time.time() - startTimeTetrahedralize}")
 
@@ -119,10 +123,14 @@ class S4DeformerWorker(DeformerWorker):
 
         cell_neighbour_graph = nx.Graph()
         cell_neighbour_graph.add_weighted_edges_from(weightedEdges)
+        MAIN_LOGGER.debug(f"S4 Deform end neighbour graph {time.time() - startTimeGraph}")
+
+        MAIN_LOGGER.debug("S4 Deform start tetrahedra attributes")
+        startTimeTetrahedraAttributes = time.time()
         input_tet, bottom_cells_mask, bottom_cells = S4Functions.calculate_tet_attributes(
             input_tet, cell_neighbour_graph
             )
-        MAIN_LOGGER.debug(f"S4 Deform end neighbour graph {time.time() - startTimeGraph}")
+        MAIN_LOGGER.debug(f"S4 Deform end tetrahedra attributes {time.time() - startTimeTetrahedraAttributes}")
 
         MAIN_LOGGER.debug("S4 Deform start calculate tet attributes")
         startTimeDeformed = time.time()
