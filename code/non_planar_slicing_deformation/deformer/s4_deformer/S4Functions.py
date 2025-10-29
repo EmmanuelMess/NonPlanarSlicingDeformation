@@ -1,5 +1,6 @@
 import base64
 import pickle
+import time
 
 from numpy.linalg import svd
 import networkx as nx
@@ -12,6 +13,8 @@ import numpy as np
 import scipy
 from scipy.sparse import lil_matrix
 from scipy.spatial.transform import Rotation as R
+
+from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
 
 """
 These are the S4 functions, that should be renamed and moved to other places
@@ -85,7 +88,7 @@ def update_tet_attributes(unstructuredGrid: pv.UnstructuredGrid, cell_neighbour_
 
     # calculate if cell will print in air by seeing if any cell centers along path to base are higher
     IN_AIR_THRESHOLD = 1
-    unstructuredGrid.cell_data['in_air'] = np.full(unstructuredGrid.number_of_cells, False)
+    in_air = np.full(unstructuredGrid.number_of_cells, False)
 
     _, paths_to_bottom = nx.multi_source_dijkstra(cell_neighbour_graph, set(bottom_cells))
 
@@ -101,7 +104,9 @@ def update_tet_attributes(unstructuredGrid: pv.UnstructuredGrid, cell_neighbour_
         if len(path_to_bottom) > 1:
             cell_heights = unstructuredGrid.cell_data['cell_center'][path_to_bottom, 2]
             if np.any(cell_heights > unstructuredGrid.cell_data['cell_center'][cell_index, 2] + IN_AIR_THRESHOLD):
-                unstructuredGrid.cell_data['in_air'][cell_index] = True
+                in_air[cell_index] = True
+
+    unstructuredGrid.cell_data['in_air'] = in_air
 
     return unstructuredGrid
 
@@ -118,35 +123,24 @@ def calculate_tet_attributes(tet: pv.UnstructuredGrid, cell_neighbour_graph: nx.
     # put general data in field_data for easy access
     cells = tet.cells.reshape(-1, 5)[:, 1:]  # assume all cells have 4 vertices
     tet.add_field_data(cells, "cells")
+
     cell_vertices = tet.points
     tet.add_field_data(cell_vertices, "cell_vertices")
+
     faces = surface_mesh.faces.reshape(-1, 4)[:, 1:]  # assume all faces have 3 vertices
     tet.add_field_data(faces, "faces")
+
     face_vertices = surface_mesh.points
     tet.add_field_data(face_vertices, "face_vertices")
 
-    # calculate shared vertices
-    shared_vertices = []
-    for cell_1, cell_2 in tet.field_data["cell_point_neighbours"]:
-        shared_vertices_these_faces = np.intersect1d(cells[cell_1], cells[cell_2])
-        for vertex in shared_vertices_these_faces:
-            shared_vertices.append({
-                "cell_1_index": cell_1,
-                "cell_2_index": cell_2,
-                "cell_1_vertex_index": np.where(cells[cell_1] == vertex)[0][0],
-                "cell_2_vertex_index": np.where(cells[cell_2] == vertex)[0][0],
-                })
-
     # calculate cell to face & face to cell relations
-    cell_to_face = {}
+    cell_to_face: Dict[int, List[int]] = {}
     face_to_cell: Dict[int, List[int]] = {face_index: [] for face_index in range(len(faces))}
     cell_to_face_vertices = {}
-    face_to_cell_vertices = {}
     for cell_vertex_index, cell_vertex in enumerate(tet.field_data["cell_vertices"].reshape(-1, 3)):
         face_vertex_index = np.where((face_vertices == cell_vertex).all(axis=1))[0]
         if len(face_vertex_index) == 1:
             cell_to_face_vertices[cell_vertex_index] = face_vertex_index[0]
-            face_to_cell_vertices[face_vertex_index[0]] = cell_vertex_index
 
     for cell_index, cell in enumerate(tet.field_data["cells"]):
         face_vertex_indices = [cell_to_face_vertices[cell_vertex_index]
@@ -162,9 +156,10 @@ def calculate_tet_attributes(tet: pv.UnstructuredGrid, cell_neighbour_graph: nx.
     tet.add_field_data(encode_object(face_to_cell), "face_to_cell")  # type: ignore  # str is a valid parameter type
 
     # calculate has_face attribute
-    tet.cell_data['has_face'] = np.zeros(tet.number_of_cells)
-    for cell_index, face_indices in cell_to_face.items():
-        tet.cell_data['has_face'][cell_index] = 1
+    has_face = np.zeros(tet.number_of_cells)
+    for cell_index in cell_to_face:
+        has_face[cell_index] = 1
+    tet.cell_data['has_face'] = has_face
 
     tet = update_tet_attributes(tet, cell_neighbour_graph)
 
