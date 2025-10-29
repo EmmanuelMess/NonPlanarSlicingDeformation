@@ -4,7 +4,9 @@ import pickle
 from numpy.linalg import svd
 import networkx as nx
 import pyvista as pv
-from typing_extensions import Final, Any, Tuple, Dict, List, cast
+from pyvista import DataSet
+from pyvista.plotting import _vtk
+from typing_extensions import Final, Any, Tuple, Dict, List, cast, Set
 
 import numpy as np
 import scipy
@@ -275,7 +277,7 @@ def calculate_path_length_to_base_gradient(  # noqa: C901
                 cell_center_direction_norm = np.linalg.norm(tet.cell_data["cell_center"][cell_index, :2])
                 cell_center_direction_normalized = (
                     tet.cell_data["cell_center"][cell_index, :2] / cell_center_direction_norm
-                )
+                    )
                 gradient_in_radial_direction = np.dot(cell_center_direction_normalized, plane_normal[:2])
 
                 # if the gradient is nan, use the average of the neighbours
@@ -535,7 +537,7 @@ def optimize_rotations(tet: pv.UnstructuredGrid, cell_neighbour_graph: nx.Graph,
     # Optimization process to smooth the initial rotation field
     result = scipy.optimize.least_squares(
         objective_function, smoothed_rotation_field, jac=objective_jacobian, max_nfev=ITERATIONS,
-        jac_sparsity=jac_sparsity(), verbose=2, method='trf', ftol=1e-6,
+        jac_sparsity=jac_sparsity(), verbose=1, method='trf', ftol=1e-6,
         )
 
     return result.x
@@ -622,7 +624,7 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
     result = scipy.optimize.least_squares(objective_function,
                                           params,
                                           max_nfev=ITERATIONS,
-                                          verbose=2,
+                                          verbose=1,
                                           jac=objective_jacobian,
                                           jac_sparsity=jac_sparsity(),
                                           method='trf',
@@ -674,3 +676,57 @@ def project_point_onto_plane(plane_x_axis: np.ndarray, plane_y_axis: np.ndarray,
     projected_y = np.sum(plane_y_axis * point, axis=1)
 
     return np.array([projected_x, projected_y]).T
+
+
+def allCellNeighbours(dataset: DataSet) -> Dict[str, Dict[int, Set[int]]]:
+    """
+    This is equivalent to running Cells.cell_neighbors on all cells of the DataSet
+    This method is NOT THREAD SAFE
+    :return:
+    """
+
+    # Build links as recommended:
+    # https://vtk.org/doc/nightly/html/classvtkPolyData.html#adf9caaa01f72972d9a986ba997af0ac7
+    if hasattr(dataset, 'BuildLinks'):
+        dataset.BuildLinks()
+
+    result: Dict[str, Dict[int, Set[int]]] = {"points": {}, "edges": {}, "faces": {}}
+
+    # reusable vtkIdList objects
+    point_ids = _vtk.vtkIdList()  # for single-point neighbor queries
+    cellIds = _vtk.vtkIdList()   # for results (will be Reset() between uses)
+
+    for i in range(dataset.number_of_cells):
+        # WARNING GetCell reuses the same output pointer
+        cell = dataset.GetCell(i)  # WARNING: if the index is outside the array, it will SEGFAULT
+
+        result["points"][i] = set()
+        result["edges"][i] = set()
+        result["faces"][i] = set()
+
+        # points
+        for j in [cell.point_ids.GetId(k) for k in range(cell.point_ids.GetNumberOfIds())]:
+            point_ids.Reset()
+            point_ids.InsertNextId(j)
+            cellIds.Reset()
+            dataset.GetCellNeighbors(i, point_ids, cellIds)
+
+            result["points"][i].update(cellIds.GetId(k) for k in range(cellIds.GetNumberOfIds()))
+
+        # edges
+        for j in range(cell.GetNumberOfEdges()):
+            edge_ids = cell.GetEdge(j).GetPointIds()
+            cellIds.Reset()
+            dataset.GetCellNeighbors(i, edge_ids, cellIds)
+
+            result["edges"][i].update(cellIds.GetId(k) for k in range(cellIds.GetNumberOfIds()))
+
+        # faces
+        for j in range(cell.GetNumberOfFaces()):
+            faceIds = cell.GetFace(j).GetPointIds()
+            cellIds.Reset()
+            dataset.GetCellNeighbors(i, faceIds, cellIds)
+
+            result["faces"][i].update(cellIds.GetId(k) for k in range(cellIds.GetNumberOfIds()))
+
+    return result

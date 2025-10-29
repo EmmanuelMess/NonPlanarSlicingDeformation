@@ -6,3 +6,4 @@ scipy-stubs
 networkx-stubs
 pyinstaller
 autopep8
+pytest-benchmark
