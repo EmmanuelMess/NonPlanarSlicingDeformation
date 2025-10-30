@@ -160,7 +160,7 @@ class S4DeformerWorker(DeformerWorker):
                                                                                                     rotation_field)
         undeformed_tet_with_rotated_tetrahedrons.cell_data["rotation_field"] = rotation_field
         # new_tet.extract_cells(np.where(rotation_field != 0)[0]).plot()
-        rotatedTriangles = undeformed_tet_with_rotated_tetrahedrons  # .plot(scalars="rotation_field")
+        rotatedTriangles = undeformed_tet_with_rotated_tetrahedrons
         bottomMesh = undeformed_tet
 
         MAIN_LOGGER.debug(f"S4 Deform end rotation field {time.time() - startTimeRotation}")
@@ -171,7 +171,6 @@ class S4DeformerWorker(DeformerWorker):
         new_vertices = S4Functions.calculate_deformation(undeformed_tet, rotation_field, calculateDeformationIterations)
         deformed_tet = pv.UnstructuredGrid(undeformed_tet.cells,
                                            np.full(undeformed_tet.number_of_cells, pv.CellType.TETRA), new_vertices)
-        self.deformedMesh = deformed_tet
 
         for key in undeformed_tet.field_data.keys():
             deformed_tet.field_data[key] = undeformed_tet.field_data[key]
@@ -179,7 +178,7 @@ class S4DeformerWorker(DeformerWorker):
             deformed_tet.cell_data[key] = undeformed_tet.cell_data[key]
         deformed_tet = S4Functions.update_tet_attributes(deformed_tet, cell_neighbour_graph)
 
-        MAIN_LOGGER.debug(f"S4 Deform apply rotation field {time.time() - startTimeApplyRotation}")
+        MAIN_LOGGER.debug(f"S4 Deform end apply rotation field {time.time() - startTimeApplyRotation}")
 
         # make origin center bottom of bounding box
         x_min, x_max, y_min, y_max, z_min, z_max = deformed_tet.bounds

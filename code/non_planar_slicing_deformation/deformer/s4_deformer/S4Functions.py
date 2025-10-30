@@ -1,6 +1,7 @@
 import base64
 import pickle
 
+import jax.numpy as jnp
 import networkx as nx
 import numpy as np
 import pyvista as pv
@@ -534,11 +535,6 @@ def optimize_rotations(tet: pv.UnstructuredGrid, cell_neighbour_graph: nx.Graph,
     return result.x
 
 
-# TODO move this somewhere else
-# the N matrix centers the vertices of a tetrahedron around the origin
-N: Final[np.ndarray] = np.eye(4) - 1 / 4 * np.ones((4, 4))
-
-
 def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, ITERATIONS: np.int64) -> np.ndarray:
     """
     Try to find the optimal deformation of the tetrahedral mesh to make cells have the same rotation as
@@ -546,80 +542,86 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
 
     Our parameters are the vertices of the deformed mesh.
     """
+    # the N matrix centers the vertices of a tetrahedron around the origin
+    N: Final[np.ndarray] = np.eye(4) - np.full((4, 4), 1 / 4)
+
+    def objective_function(params: np.ndarray, old_vertices_transformed: np.ndarray, cells: np.ndarray,
+                           number_of_points: np.int64, number_of_cells: np.int64) -> jnp.ndarray:
+        new_vertices = params[:number_of_points * 3].reshape(-1, 3)
+
+        # Apply transformation for the new vertices
+        new_vertices_transformed = (N @ new_vertices[cells]).transpose(0, 2, 1)
+
+        # Calculate position compatibility loss using vectorized operations
+        # Use squared loss as its faster
+        position_losses = np.sum((new_vertices_transformed - old_vertices_transformed) ** 2, axis=(1, 2))
+        return position_losses
+
+    def objective_jacobian(params: np.ndarray, old_vertices_transformed: np.ndarray, cells: np.ndarray,
+                           number_of_points: np.int64, number_of_cells: np.int64) -> scipy.sparse.csr_matrix:
+        # Extract parameters
+        new_vertices = params[:number_of_points * 3].reshape(-1, 3)
+
+        # Apply the transformation for old and new vertices
+        new_vertices_transformed = (N @ new_vertices[cells]).transpose(0, 2, 1)
+
+        # Compute the squared difference between transformed new and old vertices
+        diff = 2 * (new_vertices_transformed - old_vertices_transformed)  # shape: (num_cells, 3, num_vertices_per_cell)
+
+        # Reshape diff for easier broadcasting
+        diffTransposed = diff.transpose(0, 2, 1)  # shape: (num_cells, num_vertices_per_cell, 3)
+        diffTransposed =\
+            diffTransposed.reshape((-1, 3)).transpose((1, 0))  # shape: (3, num_cells*num_vertices_per_cell)
+
+        # Now, for each cell, update the corresponding rows in the Jacobian
+        # Cell indices repeated per vertex
+        cell_indices = np.repeat(np.arange(number_of_cells), cells.shape[1])
+        vertex_indices = np.ravel(cells)  # Flatten the cell-to-vertex mapping
+
+        # Initialize Jacobian matrix
+        J = lil_matrix((number_of_cells, params.shape[0]), dtype=np.float64)
+
+        # For each component x, y, z in the vertex, update the Jacobian
+        J[cell_indices, vertex_indices * 3 + 0] = diffTransposed[0]
+        J[cell_indices, vertex_indices * 3 + 1] = diffTransposed[1]
+        J[cell_indices, vertex_indices * 3 + 2] = diffTransposed[2]
+
+        return J.tocsr()
+
+    def jac_sparsity(cells: np.ndarray) -> np.ndarray:
+        sparsity = np.zeros((tet.number_of_cells, params.shape[0]), dtype=np.int8)
+
+        cell_indices = np.repeat(np.arange(tet.number_of_cells), cells.shape[1])
+        vertex_indices = np.ravel(cells)
+
+        for dim in range(3):
+            sparsity[cell_indices, vertex_indices * 3 + dim] = 1
+
+        return sparsity
+
+    cells = tet.field_data["cells"]
 
     new_vertices = tet.points.copy()
-
     params = new_vertices.flatten()
 
     rotation_matrices = calculate_rotation_matrices(tet, rotation_field)
 
     # Extract old vertices for all cells
-    old_vertices = tet.field_data["cell_vertices"][tet.field_data["cells"]]
+    old_vertices = tet.field_data["cell_vertices"][cells]
     # Apply the transformation for all cells
     old_vertices_transformed = np.einsum('ijk,ikl->ijl', rotation_matrices, (N @ old_vertices).transpose(0, 2, 1))
 
-    def objective_function(params: np.ndarray) -> np.ndarray:
-        new_vertices = params[:tet.number_of_points * 3].reshape(-1, 3)
-
-        # Apply transformation for the new vertices
-        new_vertices_transformed = (N @ new_vertices[tet.field_data["cells"]]).transpose(0, 2, 1)
-
-        # Calculate position compatibility loss using vectorized operations
-        position_losses = np.linalg.norm(new_vertices_transformed - old_vertices_transformed, axis=(1, 2))**2
-
-        # print(f"Objective function took {time.time() - start_time} seconds")
-        return position_losses
-
-    def objective_jacobian(params: np.ndarray) -> scipy.sparse.csr_matrix:
-        # Initialize Jacobian matrix
-        J = lil_matrix((tet.number_of_cells, len(params)), dtype=np.float32)
-
-        # Extract parameters
-        new_vertices = params[:tet.number_of_points * 3].reshape(-1, 3)
-
-        # Extract old vertices for all cells
-        # old_vertices = tet.field_data["cell_vertices"][tet.field_data["cells"]]
-
-        # Apply the transformation for old and new vertices
-        new_vertices_transformed = (N @ new_vertices[tet.field_data["cells"]]).transpose(0, 2, 1)
-
-        # Compute the difference between transformed new and old vertices
-        diff = new_vertices_transformed - old_vertices_transformed  # shape: (num_cells, 3, num_vertices_per_cell)
-
-        # Reshape diff for easier broadcasting
-        diff = diff.transpose(0, 2, 1)  # shape: (num_cells, num_vertices_per_cell, 3)
-
-        # Now, for each cell, update the corresponding rows in the Jacobian
-        cell_indices = np.repeat(np.arange(tet.number_of_cells), len(
-            tet.field_data["cells"][0]))  # Cell indices repeated per vertex
-        vertex_indices = np.ravel(tet.field_data["cells"])  # Flatten the cell-to-vertex mapping
-
-        # For each component x, y, z in the vertex, update the Jacobian
-        for dim in range(3):
-            J[cell_indices, vertex_indices * 3 + dim] = 2 * diff[:, :, dim].ravel()
-
-        # print(f"Objective jacobian took {time.time() - start_time} seconds")
-        return J.tocsr()
-
-    def jac_sparsity() -> scipy.sparse.csr_matrix:
-        sparsity = lil_matrix((tet.number_of_cells, len(params)), dtype=np.int8)
-
-        cell_indices = np.repeat(np.arange(tet.number_of_cells), len(tet.field_data["cells"][0]))
-        vertex_indices = np.ravel(tet.field_data["cells"])
-
-        for dim in range(3):
-            sparsity[cell_indices, vertex_indices * 3 + dim] = 1
-
-        return sparsity.tocsr()
+    args = (old_vertices_transformed, cells, tet.number_of_points, tet.number_of_cells)
 
     result = scipy.optimize.least_squares(objective_function,
                                           params,
                                           max_nfev=ITERATIONS,
                                           verbose=1,
                                           jac=objective_jacobian,
-                                          jac_sparsity=jac_sparsity(),
+                                          jac_sparsity=jac_sparsity(cells),
                                           method='trf',
                                           x_scale='jac',
+                                          args=args
                                           )
 
     return result.x[:tet.number_of_points * 3].reshape(-1, 3)

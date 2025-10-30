@@ -10,3 +10,4 @@ open3d
 tetgen
 networkx
 pymeshfix
+jax
