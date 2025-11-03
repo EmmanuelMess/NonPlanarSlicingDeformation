@@ -38,7 +38,7 @@ s4DeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
     "min rotation": np.float64(-3600.0),
     "optimize rotation iterations": np.int64(100),
     "steep overhang compensation": True,
-    "calculate deformation iterations": np.int64(1000),
+    "calculate deformation iterations": np.int64(100),
     })
 s4UndeformerDefaults: Final[KeyValueParameters] = KeyValueParameters({
     "home all": False,

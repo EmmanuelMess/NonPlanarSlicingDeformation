@@ -1,7 +1,6 @@
 import base64
 import pickle
 
-import jax.numpy as jnp
 import networkx as nx
 import numpy as np
 import pyvista as pv
@@ -546,8 +545,10 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
     N: Final[np.ndarray] = np.eye(4) - np.full((4, 4), 1 / 4)
 
     def objective_function(params: np.ndarray, old_vertices_transformed: np.ndarray, cells: np.ndarray,
-                           number_of_points: np.int64, number_of_cells: np.int64) -> jnp.ndarray:
-        new_vertices = params[:number_of_points * 3].reshape(-1, 3)
+                           J: scipy.sparse.lil_matrix, cell_indices: np.ndarray, vertex_indices: np.ndarray,
+                           number_of_points: np.int64, number_of_cells: np.int64, num_vertices_per_cell: np.int64)\
+            -> np.ndarray:
+        new_vertices = params.reshape(number_of_points, 3)
 
         # Apply transformation for the new vertices
         new_vertices_transformed = (N @ new_vertices[cells]).transpose(0, 2, 1)
@@ -558,9 +559,11 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
         return position_losses
 
     def objective_jacobian(params: np.ndarray, old_vertices_transformed: np.ndarray, cells: np.ndarray,
-                           number_of_points: np.int64, number_of_cells: np.int64) -> scipy.sparse.csr_matrix:
+                           J: scipy.sparse.lil_matrix, cell_indices: np.ndarray, vertex_indices: np.ndarray,
+                           number_of_points: np.int64, number_of_cells: np.int64, num_vertices_per_cell: np.int64)\
+            -> scipy.sparse.csr_matrix:
         # Extract parameters
-        new_vertices = params[:number_of_points * 3].reshape(-1, 3)
+        new_vertices = params.reshape(number_of_points, 3)
 
         # Apply the transformation for old and new vertices
         new_vertices_transformed = (N @ new_vertices[cells]).transpose(0, 2, 1)
@@ -570,16 +573,8 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
 
         # Reshape diff for easier broadcasting
         diffTransposed = diff.transpose(0, 2, 1)  # shape: (num_cells, num_vertices_per_cell, 3)
-        diffTransposed =\
-            diffTransposed.reshape((-1, 3)).transpose((1, 0))  # shape: (3, num_cells*num_vertices_per_cell)
-
-        # Now, for each cell, update the corresponding rows in the Jacobian
-        # Cell indices repeated per vertex
-        cell_indices = np.repeat(np.arange(number_of_cells), cells.shape[1])
-        vertex_indices = np.ravel(cells)  # Flatten the cell-to-vertex mapping
-
-        # Initialize Jacobian matrix
-        J = lil_matrix((number_of_cells, params.shape[0]), dtype=np.float64)
+        # shape: (3, num_cells*num_vertices_per_cell)
+        diffTransposed = diffTransposed.reshape((number_of_cells * num_vertices_per_cell, 3)).transpose((1, 0))
 
         # For each component x, y, z in the vertex, update the Jacobian
         J[cell_indices, vertex_indices * 3 + 0] = diffTransposed[0]
@@ -602,7 +597,9 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
     cells = tet.field_data["cells"]
 
     new_vertices = tet.points.copy()
-    params = new_vertices.flatten()
+    params = new_vertices.flatten()  # number_of_points * 3
+
+    vertices_per_cell = N.shape[0]
 
     rotation_matrices = calculate_rotation_matrices(tet, rotation_field)
 
@@ -611,7 +608,16 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
     # Apply the transformation for all cells
     old_vertices_transformed = np.einsum('ijk,ikl->ijl', rotation_matrices, (N @ old_vertices).transpose(0, 2, 1))
 
-    args = (old_vertices_transformed, cells, tet.number_of_points, tet.number_of_cells)
+    # Now, for each cell, update the corresponding rows in the Jacobian
+    # Cell indices repeated per vertex
+    cell_indices = np.repeat(np.arange(tet.number_of_cells), cells.shape[1])
+    vertex_indices = np.ravel(cells)  # Flatten the cell-to-vertex mapping
+
+    # Initialize Jacobian matrix
+    J = scipy.sparse.lil_matrix((tet.number_of_cells, params.shape[0]), dtype=np.float64)
+
+    args = (old_vertices_transformed, cells, J, cell_indices, vertex_indices, tet.number_of_points, tet.number_of_cells,
+            vertices_per_cell)
 
     result = scipy.optimize.least_squares(objective_function,
                                           params,
@@ -621,7 +627,8 @@ def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, 
                                           jac_sparsity=jac_sparsity(cells),
                                           method='trf',
                                           x_scale='jac',
-                                          args=args
+                                          args=args,
+                                          ftol=0.01
                                           )
 
     return result.x[:tet.number_of_points * 3].reshape(-1, 3)
