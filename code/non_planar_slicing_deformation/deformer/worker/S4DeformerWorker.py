@@ -132,8 +132,8 @@ class S4DeformerWorker(DeformerWorker):
             )
         MAIN_LOGGER.debug(f"S4 Deform end tetrahedra attributes {time.time() - startTimeTetrahedraAttributes}")
 
-        MAIN_LOGGER.debug("S4 Deform start calculate tet attributes")
-        startTimeDeformed = time.time()
+        MAIN_LOGGER.debug("S4 Deform start optimize rotations")
+        startTimeOptimizeRotations = time.time()
         undeformed_tet = input_tet.copy()
 
         rotation_field = S4Functions.optimize_rotations(
@@ -151,9 +151,9 @@ class S4DeformerWorker(DeformerWorker):
             maxRotation,
             minRotation
             )
-        MAIN_LOGGER.debug(f"S4 Deform end calculate tet attributes {time.time() - startTimeDeformed}")
+        MAIN_LOGGER.debug(f"S4 Deform end optimize rotations {time.time() - startTimeOptimizeRotations}")
 
-        MAIN_LOGGER.debug("S4 Deform start rotation field")
+        MAIN_LOGGER.debug("S4 Deform start apply rotation field")
         startTimeRotation = time.time()
         # rotation_field = calculate_initial_rotation_field(tet, maxOverhang, rotationMultiplier)
         undeformed_tet_with_rotated_tetrahedrons = S4Functions.apply_rotation_field_unique_vertices(undeformed_tet,
@@ -163,12 +163,18 @@ class S4DeformerWorker(DeformerWorker):
         rotatedTriangles = undeformed_tet_with_rotated_tetrahedrons
         bottomMesh = undeformed_tet
 
-        MAIN_LOGGER.debug(f"S4 Deform end rotation field {time.time() - startTimeRotation}")
+        MAIN_LOGGER.debug(f"S4 Deform end apply rotation field {time.time() - startTimeRotation}")
 
-        MAIN_LOGGER.debug("S4 Deform start apply rotation field")
-        startTimeApplyRotation = time.time()
+        MAIN_LOGGER.debug("S4 Deform start calculate deformation")
+        startTimeCalculateDeformation = time.time()
 
         new_vertices = S4Functions.calculate_deformation(undeformed_tet, rotation_field, calculateDeformationIterations)
+
+        MAIN_LOGGER.debug(f"S4 Deform end calculate deformation {time.time() - startTimeCalculateDeformation}")
+
+        MAIN_LOGGER.debug("S4 Deform start apply deformation")
+        startTimeApplyDeformation = time.time()
+
         deformed_tet = pv.UnstructuredGrid(undeformed_tet.cells,
                                            np.full(undeformed_tet.number_of_cells, pv.CellType.TETRA), new_vertices)
 
@@ -178,7 +184,7 @@ class S4DeformerWorker(DeformerWorker):
             deformed_tet.cell_data[key] = undeformed_tet.cell_data[key]
         deformed_tet = S4Functions.update_tet_attributes(deformed_tet, cell_neighbour_graph)
 
-        MAIN_LOGGER.debug(f"S4 Deform end apply rotation field {time.time() - startTimeApplyRotation}")
+        MAIN_LOGGER.debug(f"S4 Deform end apply deformation {time.time() - startTimeApplyDeformation}")
 
         # make origin center bottom of bounding box
         x_min, x_max, y_min, y_max, z_min, z_max = deformed_tet.bounds
