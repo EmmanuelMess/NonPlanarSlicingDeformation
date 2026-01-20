@@ -11,3 +11,4 @@ tetgen
 networkx
 pymeshfix
 jax
+pyceres

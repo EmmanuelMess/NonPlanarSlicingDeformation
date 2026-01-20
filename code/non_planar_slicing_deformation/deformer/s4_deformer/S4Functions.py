@@ -1,6 +1,7 @@
 import base64
 import pickle
 
+import pyceres  # type: ignore
 import networkx as nx
 import numpy as np
 import pyvista as pv
@@ -8,9 +9,10 @@ import scipy
 from numpy.linalg import svd
 from pyvista import DataSet
 from pyvista.plotting import _vtk
-from scipy.sparse import lil_matrix
 from scipy.spatial.transform import Rotation as R
-from typing_extensions import Final, Any, Tuple, Dict, List, cast, Set
+from typing_extensions import Final, Any, Tuple, Dict, List, cast, Set, Optional
+
+from non_planar_slicing_deformation.common.MainLoggerHolder import MAIN_LOGGER
 
 """
 These are the S4 functions, that should be renamed and moved to other places
@@ -448,90 +450,83 @@ def optimize_rotations(tet: pv.UnstructuredGrid, cell_neighbour_graph: nx.Graph,
     than MAX_OVERHANG while keeping the rotation field smooth.
     """
 
+    class RotationCostFunction(pyceres.CostFunction):
+        def __init__(self) -> None:
+            pyceres.CostFunction.__init__(self)
+            self.set_num_residuals(1)
+            self.set_parameter_block_sizes([1, 1])
+
+        def Evaluate(self, parameters: List[np.ndarray], residuals: List[np.ndarray],
+                     jacobians: Optional[List[np.ndarray]]) -> bool:
+            fieldNeighbour0 = parameters[0][0]
+            fieldNeighbour1 = parameters[1][0]
+            neighbour_difference_loss = (fieldNeighbour0 - fieldNeighbour1) * NEIGHBOUR_LOSS_WEIGHT
+            residuals[0] = neighbour_difference_loss
+            if jacobians is not None:
+                jacobians[0][0] = NEIGHBOUR_LOSS_WEIGHT
+                jacobians[1][0] = -NEIGHBOUR_LOSS_WEIGHT
+            return True
+
+    class InitialRotationCostFunction(pyceres.CostFunction):
+        def __init__(self, initialRotation: np.float64) -> None:
+            pyceres.CostFunction.__init__(self)
+            self.initialRotation = initialRotation
+
+            self.set_num_residuals(1)
+            self.set_parameter_block_sizes([1])
+
+        def Evaluate(self, parameters: List[np.ndarray], residuals: List[np.ndarray],
+                     jacobians: Optional[List[np.ndarray]]) -> bool:
+            fieldElement = parameters[0][0]
+            initial_rotation_difference = fieldElement - self.initialRotation
+            residuals[0] = initial_rotation_difference
+            if jacobians is not None:
+                jacobians[0][0] = 1
+            return True
+
     initial_rotation_field = calculate_initial_rotation_field(
         tet, cell_neighbour_graph, bottom_cells, cell_neighbour_dict, MAX_OVERHANG, ROTATION_MULTIPLIER,
         STEEP_OVERHANG_COMPENSATION, INITIAL_ROTATION_FIELD_SMOOTHING, SET_INITIAL_ROTATION_TO_ZERO, MAX_POS_ROTATION,
         MAX_NEG_ROTATION
         )
-    num_cells_with_initial_rotation = np.sum(~np.isnan(initial_rotation_field))
 
-    def objective_function(rotation_field: np.ndarray) -> np.ndarray:
-        """
-        Objective function to minimize the neighbour losses and initial rotation losses.
-        """
-        # Compute neighbour losses using vectorized operations
-        cell_face_neighbours = tet.field_data["cell_face_neighbours"]
-        neighbour_differences = rotation_field[cell_face_neighbours[:, 0]] - rotation_field[cell_face_neighbours[:, 1]]
-        neighbour_losses = NEIGHBOUR_LOSS_WEIGHT * neighbour_differences**2
+    cell_face_neighbours = tet.field_data["cell_face_neighbours"]
+    valid_cell_indices = np.where(~np.isnan(initial_rotation_field))[0]  # np.where(overhanging_mask)[0]
 
-        # Compute the initial rotation losses
-        valid_cell_indices = np.where(~np.isnan(initial_rotation_field))[0]  # np.where(overhanging_mask)[0]
-        initial_rotation_losses = (rotation_field[valid_cell_indices] - initial_rotation_field[valid_cell_indices])**2
+    smoothed_rotation_field = [np.array(0.0) for _ in range(tet.number_of_cells)]
 
-        # Return the concatenated losses
-        return np.concatenate((neighbour_losses, initial_rotation_losses))
+    problem = pyceres.Problem()
+    loss = None
+    costs: List[pyceres.CostFunction] = []
+    for i in range(cell_face_neighbours.shape[0]):
+        cost = RotationCostFunction()
+        costs.append(cost)
 
-    def objective_jacobian(rotation_field: np.ndarray) -> scipy.sparse.csr_matrix:
-        # Initialize the sparse matrix with LIL format for efficient row-wise operations
-        cell_face_neighbours = tet.field_data["cell_face_neighbours"]
-        jac = lil_matrix(
-            (len(cell_face_neighbours)
-             + num_cells_with_initial_rotation,
-             tet.number_of_cells),
-            dtype=np.float32)
+        params = [smoothed_rotation_field[cell_face_neighbours[i, 0]],
+                  smoothed_rotation_field[cell_face_neighbours[i, 1]]]
+        problem.add_residual_block(cost, loss, params)
 
-        # Vectorized computation for neighbour loss derivatives
-        cell_1 = cell_face_neighbours[:, 0]
-        cell_2 = cell_face_neighbours[:, 1]
+    for i in range(valid_cell_indices.shape[0]):
+        initialRotation = initial_rotation_field[valid_cell_indices[i]]
 
-        # Compute the differences
-        differences = rotation_field[cell_1] - rotation_field[cell_2]
+        cost = InitialRotationCostFunction(initialRotation)
+        costs.append(cost)
 
-        # Fill in the Jacobian for the first derivative of the neighbour loss function
-        jac[range(len(cell_face_neighbours)), cell_1] = 2 * NEIGHBOUR_LOSS_WEIGHT * differences
-        jac[range(len(cell_face_neighbours)), cell_2] = -2 * NEIGHBOUR_LOSS_WEIGHT * differences
+        params = [smoothed_rotation_field[valid_cell_indices[i]]]
+        problem.add_residual_block(cost, loss, params)
 
-        # Vectorized computation for initial rotation loss derivatives
-        valid_cell_indices = np.where(~np.isnan(initial_rotation_field))[0]  # np.where(overhanging_mask)[0]
+    options = pyceres.SolverOptions()
+    options.linear_solver_type = pyceres.LinearSolverType.SPARSE_NORMAL_CHOLESKY
+    options.max_num_iterations = ITERATIONS
+    options.function_tolerance = 1e-6
+    options.minimizer_progress_to_stdout = False
+    options.num_threads = -1
 
-        # Fill in the Jacobian for the first derivative of the initial rotation loss function
-        jac[len(cell_face_neighbours) + np.arange(len(valid_cell_indices)), valid_cell_indices] = \
-            2 * (rotation_field[valid_cell_indices] - initial_rotation_field[valid_cell_indices])
+    summary = pyceres.SolverSummary()
+    pyceres.solve(options, problem, summary)
+    MAIN_LOGGER.debug(summary.BriefReport())
 
-        # print("Jacobian time:", time.time() - start_time)
-        # Convert the LIL matrix to CSR format for efficient computations in further steps
-        return jac.tocsr()
-
-    def jac_sparsity() -> scipy.sparse.csr_matrix:
-        cell_face_neighbours = tet.field_data["cell_face_neighbours"]
-        sparsity = lil_matrix(
-            (len(cell_face_neighbours)
-             + num_cells_with_initial_rotation,
-             tet.number_of_cells),
-            dtype=np.int8)
-
-        for i, (cell_1, cell_2) in enumerate(cell_face_neighbours):
-            sparsity[i, cell_1] = 1
-            sparsity[i, cell_2] = 1
-
-        valid_cell_indices = np.where(~np.isnan(initial_rotation_field))[0]  # np.where(overhanging_mask)[0]
-        i = 0
-        for cell_index, initial_rotation in enumerate(initial_rotation_field):
-            if cell_index in valid_cell_indices:
-                sparsity[len(cell_face_neighbours) + i, cell_index] = 1
-                i += 1
-
-        return sparsity.tocsr()
-
-    smoothed_rotation_field = np.zeros((tet.number_of_cells))
-
-    # Optimization process to smooth the initial rotation field
-    result = scipy.optimize.least_squares(
-        objective_function, smoothed_rotation_field, jac=objective_jacobian, max_nfev=ITERATIONS,
-        jac_sparsity=jac_sparsity(), verbose=1, method='trf', ftol=1e-6,
-        )
-
-    return result.x
+    return np.array(smoothed_rotation_field).reshape((-1,))
 
 
 def calculate_deformation(tet: pv.UnstructuredGrid, rotation_field: np.ndarray, ITERATIONS: np.int64) -> np.ndarray:
