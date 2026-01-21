@@ -70,7 +70,13 @@ class S4DeformerWorker(DeformerWorker):
         except RuntimeError:  # for RuntimeError: Failed to tetrahedralize.
             MAIN_LOGGER.warning("RuntimeError tetrahedralizing, running make_manifold and retrying")
             input_tet.make_manifold()
-            input_tet.tetrahedralize()
+            try:
+                input_tet.tetrahedralize()
+            except RuntimeError:  # for RuntimeError: Failed to tetrahedralize.
+                MAIN_LOGGER.error("RuntimeError tetrahedralizing, "
+                                  "check that you don't have self intersections with tetgen -d <filename>")
+                self.result.emit(None)
+                return
         input_tet = input_tet.grid
         MAIN_LOGGER.debug(f"S4 Deform tetrahedralize {time.time() - startTimeTetrahedralize}")
 
